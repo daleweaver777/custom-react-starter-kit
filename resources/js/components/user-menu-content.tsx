@@ -33,7 +33,7 @@ export function UserMenuContent({ user }: Props) {
                     </div>
                 </DropdownMenuLabel>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="bg-border/50" />
             <DropdownMenuGroup>
                 <DropdownMenuItem
                     render={
@@ -49,7 +49,7 @@ export function UserMenuContent({ user }: Props) {
                     Settings
                 </DropdownMenuItem>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="bg-border/50" />
             <DropdownMenuItem
                 nativeButton
                 render={

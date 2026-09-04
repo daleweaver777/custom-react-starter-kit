@@ -1,10 +1,17 @@
 import { Form, Head } from '@inertiajs/react';
 import { useRef } from 'react';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { edit } from '@/routes/security';
 /* @chisel-passkeys */
@@ -30,14 +37,14 @@ export default function Security(props: Props) {
         <>
             <Head title="Security settings" />
 
-            <h1 className="sr-only">Security settings</h1>
-
-            <div className="flex flex-col gap-6">
-                <Heading
-                    variant="small"
-                    title="Update password"
-                    description="Ensure your account is using a long, random password to stay secure"
-                />
+            <Card>
+                <CardHeader>
+                    <CardTitle>Update password</CardTitle>
+                    <CardDescription>
+                        Ensure your account is using a long, random password to
+                        stay secure
+                    </CardDescription>
+                </CardHeader>
 
                 <Form
                     {...SecurityController.update.form()}
@@ -59,86 +66,95 @@ export default function Security(props: Props) {
                             currentPasswordInput.current?.focus();
                         }
                     }}
-                    className="flex flex-col gap-6"
+                    className="flex flex-col gap-(--card-spacing)"
                 >
                     {({ errors, processing }) => (
                         <>
-                            <FieldGroup>
-                                <Field data-invalid={!!errors.current_password}>
-                                    <FieldLabel htmlFor="current_password">
-                                        Current password
-                                    </FieldLabel>
+                            <CardContent>
+                                <FieldGroup>
+                                    <Field
+                                        data-invalid={!!errors.current_password}
+                                    >
+                                        <FieldLabel htmlFor="current_password">
+                                            Current password
+                                        </FieldLabel>
 
-                                    <PasswordInput
-                                        id="current_password"
-                                        ref={currentPasswordInput}
-                                        name="current_password"
-                                        autoComplete="current-password"
-                                        placeholder="Current password"
-                                        aria-invalid={!!errors.current_password}
-                                    />
+                                        <PasswordInput
+                                            id="current_password"
+                                            ref={currentPasswordInput}
+                                            name="current_password"
+                                            autoComplete="current-password"
+                                            placeholder="Current password"
+                                            aria-invalid={
+                                                !!errors.current_password
+                                            }
+                                        />
 
-                                    <InputError
-                                        message={errors.current_password}
-                                    />
-                                </Field>
+                                        <InputError
+                                            message={errors.current_password}
+                                        />
+                                    </Field>
 
-                                <Field data-invalid={!!errors.password}>
-                                    <FieldLabel htmlFor="password">
-                                        New password
-                                    </FieldLabel>
+                                    <Field data-invalid={!!errors.password}>
+                                        <FieldLabel htmlFor="password">
+                                            New password
+                                        </FieldLabel>
 
-                                    <PasswordInput
-                                        id="password"
-                                        ref={passwordInput}
-                                        name="password"
-                                        autoComplete="new-password"
-                                        placeholder="New password"
-                                        passwordrules={props.passwordRules}
-                                        aria-invalid={!!errors.password}
-                                    />
+                                        <PasswordInput
+                                            id="password"
+                                            ref={passwordInput}
+                                            name="password"
+                                            autoComplete="new-password"
+                                            placeholder="New password"
+                                            passwordrules={props.passwordRules}
+                                            aria-invalid={!!errors.password}
+                                        />
 
-                                    <InputError message={errors.password} />
-                                </Field>
+                                        <InputError message={errors.password} />
+                                    </Field>
 
-                                <Field
-                                    data-invalid={
-                                        !!errors.password_confirmation
-                                    }
-                                >
-                                    <FieldLabel htmlFor="password_confirmation">
-                                        Confirm password
-                                    </FieldLabel>
-
-                                    <PasswordInput
-                                        id="password_confirmation"
-                                        name="password_confirmation"
-                                        autoComplete="new-password"
-                                        placeholder="Confirm password"
-                                        passwordrules={props.passwordRules}
-                                        aria-invalid={
+                                    <Field
+                                        data-invalid={
                                             !!errors.password_confirmation
                                         }
-                                    />
+                                    >
+                                        <FieldLabel htmlFor="password_confirmation">
+                                            Confirm password
+                                        </FieldLabel>
 
-                                    <InputError
-                                        message={errors.password_confirmation}
-                                    />
-                                </Field>
-                            </FieldGroup>
+                                        <PasswordInput
+                                            id="password_confirmation"
+                                            name="password_confirmation"
+                                            autoComplete="new-password"
+                                            placeholder="Confirm password"
+                                            passwordrules={props.passwordRules}
+                                            aria-invalid={
+                                                !!errors.password_confirmation
+                                            }
+                                        />
 
-                            <div className="flex items-center gap-4">
+                                        <InputError
+                                            message={
+                                                errors.password_confirmation
+                                            }
+                                        />
+                                    </Field>
+                                </FieldGroup>
+                            </CardContent>
+
+                            <CardFooter className="justify-end">
                                 <Button
+                                    type="submit"
                                     disabled={processing}
                                     data-test="update-password-button"
                                 >
                                     Save
                                 </Button>
-                            </div>
+                            </CardFooter>
                         </>
                     )}
                 </Form>
-            </div>
+            </Card>
 
             {/* @chisel-2fa */}
             <ManageTwoFactor

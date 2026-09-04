@@ -1,9 +1,12 @@
 import { Form, Head } from '@inertiajs/react';
-import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
-import { Spinner } from '@/components/ui/spinner';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { store } from '@/routes/password/confirm';
 /* @chisel-passkeys */
 import {
@@ -25,41 +28,47 @@ export default function ConfirmPassword() {
                     submit: confirmStore(),
                 }}
                 label="Confirm with passkey"
-                loadingLabel="Confirming..."
+                loadingLabel="Confirming…"
                 separator="Or confirm with password"
             />
             {/* @end-chisel-passkeys */}
 
-            <Form {...store.form()} resetOnSuccess={['password']}>
+            <Form
+                {...store.form()}
+                resetOnError={['password']}
+                resetOnSuccess={['password']}
+            >
                 {({ processing, errors }) => (
-                    <div className="flex flex-col gap-6">
-                        <FieldGroup>
-                            <Field data-invalid={!!errors.password}>
-                                <FieldLabel htmlFor="password">
-                                    Password
-                                </FieldLabel>
-                                <PasswordInput
-                                    id="password"
-                                    name="password"
-                                    placeholder="Password"
-                                    autoComplete="current-password"
-                                    autoFocus
-                                    aria-invalid={!!errors.password}
-                                />
-
-                                <InputError message={errors.password} />
-                            </Field>
-                        </FieldGroup>
+                    <FieldGroup>
+                        <Field data-invalid={!!errors.password}>
+                            <FieldLabel htmlFor="password">Password</FieldLabel>
+                            <PasswordInput
+                                id="password"
+                                name="password"
+                                placeholder="Password"
+                                autoComplete="current-password"
+                                autoFocus
+                                aria-invalid={!!errors.password}
+                                aria-describedby={
+                                    errors.password
+                                        ? 'password-error'
+                                        : undefined
+                                }
+                            />
+                            <FieldError id="password-error">
+                                {errors.password}
+                            </FieldError>
+                        </Field>
 
                         <Button
+                            type="submit"
                             className="w-full"
                             disabled={processing}
                             data-test="confirm-password-button"
                         >
-                            {processing && <Spinner data-icon="inline-start" />}
                             Confirm password
                         </Button>
-                    </div>
+                    </FieldGroup>
                 )}
             </Form>
         </>

@@ -1,13 +1,16 @@
 import { Form, Head } from '@inertiajs/react';
-import InputError from '@/components/input-error';
+import AuthStatus from '@/components/auth-status';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Spinner } from '@/components/ui/spinner';
 /* @chisel-registration */
 import { register } from '@/routes';
 /* @end-chisel-registration */
@@ -27,81 +30,89 @@ export default function Login({ status, canResetPassword }: Props) {
         <>
             <Head title="Log in" />
 
+            <AuthStatus>{status}</AuthStatus>
+
             {/* @chisel-passkeys */}
             <PasskeyVerify />
             {/* @end-chisel-passkeys */}
 
             <Form
                 {...store.form()}
+                resetOnError={['password']}
                 resetOnSuccess={['password']}
                 className="flex flex-col gap-6"
             >
                 {({ processing, errors }) => (
                     <>
-                        <div className="flex flex-col gap-6">
-                            <FieldGroup>
-                                <Field data-invalid={!!errors.email}>
-                                    <FieldLabel htmlFor="email">
-                                        Email address
-                                    </FieldLabel>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        name="email"
-                                        required
-                                        autoFocus
-                                        autoComplete="email"
-                                        placeholder="email@example.com"
-                                        aria-invalid={!!errors.email}
-                                    />
-                                    <InputError message={errors.email} />
-                                </Field>
+                        <FieldGroup>
+                            <Field data-invalid={!!errors.email}>
+                                <FieldLabel htmlFor="email">
+                                    Email address
+                                </FieldLabel>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    name="email"
+                                    required
+                                    autoFocus
+                                    autoComplete="email"
+                                    placeholder="email@example.com"
+                                    aria-invalid={!!errors.email}
+                                    aria-describedby={
+                                        errors.email ? 'email-error' : undefined
+                                    }
+                                />
+                                <FieldError id="email-error">
+                                    {errors.email}
+                                </FieldError>
+                            </Field>
 
-                                <Field data-invalid={!!errors.password}>
-                                    <div className="flex items-center">
-                                        <FieldLabel htmlFor="password">
-                                            Password
-                                        </FieldLabel>
-                                        {canResetPassword && (
-                                            <TextLink
-                                                href={request()}
-                                                className="ml-auto text-sm"
-                                            >
-                                                Forgot your password?
-                                            </TextLink>
-                                        )}
-                                    </div>
-                                    <PasswordInput
-                                        id="password"
-                                        name="password"
-                                        required
-                                        autoComplete="current-password"
-                                        placeholder="Password"
-                                        aria-invalid={!!errors.password}
-                                    />
-                                    <InputError message={errors.password} />
-                                </Field>
+                            <Field data-invalid={!!errors.password}>
+                                <FieldLabel htmlFor="password">
+                                    Password
+                                </FieldLabel>
+                                <PasswordInput
+                                    id="password"
+                                    name="password"
+                                    required
+                                    autoComplete="current-password"
+                                    placeholder="Password"
+                                    aria-invalid={!!errors.password}
+                                    aria-describedby={
+                                        errors.password
+                                            ? 'password-error'
+                                            : undefined
+                                    }
+                                />
+                                <FieldError id="password-error">
+                                    {errors.password}
+                                </FieldError>
+                            </Field>
 
-                                <Field orientation="horizontal">
-                                    <Checkbox id="remember" name="remember" />
-                                    <FieldLabel htmlFor="remember">
-                                        Remember me
-                                    </FieldLabel>
-                                </Field>
-                            </FieldGroup>
+                            <Field orientation="horizontal">
+                                <Checkbox id="remember" name="remember" />
+                                <FieldLabel htmlFor="remember">
+                                    Remember me
+                                </FieldLabel>
+                                {canResetPassword && (
+                                    <TextLink
+                                        href={request()}
+                                        className="text-sm"
+                                    >
+                                        Forgot your password?
+                                    </TextLink>
+                                )}
+                            </Field>
 
                             <Button
                                 type="submit"
-                                className="mt-4 w-full"
+                                className="w-full"
                                 disabled={processing}
                                 data-test="login-button"
                             >
-                                {processing && (
-                                    <Spinner data-icon="inline-start" />
-                                )}
                                 Log in
                             </Button>
-                        </div>
+                        </FieldGroup>
 
                         {/* @chisel-registration */}
                         <div className="text-muted-foreground text-center text-sm">
@@ -112,12 +123,6 @@ export default function Login({ status, canResetPassword }: Props) {
                     </>
                 )}
             </Form>
-
-            {status && (
-                <Alert className="mb-4">
-                    <AlertDescription>{status}</AlertDescription>
-                </Alert>
-            )}
         </>
     );
 }

@@ -1,9 +1,16 @@
 import { router } from '@inertiajs/react';
 import { KeyRound } from 'lucide-react';
 import { destroy } from '@/actions/Laravel/Passkeys/Http/Controllers/PasskeyRegistrationController';
-import Heading from '@/components/heading';
 import PasskeyItem from '@/components/passkey-item';
 import PasskeyRegistration from '@/components/passkey-register';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import {
     Empty,
     EmptyDescription,
@@ -20,7 +27,7 @@ export type Props = {
 
 const EmptyState = () => {
     return (
-        <Empty className="p-8">
+        <Empty className="rounded-lg border border-dashed">
             <EmptyHeader>
                 <EmptyMedia variant="icon">
                     <KeyRound />
@@ -53,28 +60,33 @@ export default function ManagePasskeys(props: Props) {
     }
 
     return (
-        <div className="flex flex-col gap-6">
-            <Heading
-                variant="small"
-                title="Passkeys"
-                description="Manage your passkeys for passwordless sign-in"
-            />
+        <Card>
+            <CardHeader>
+                <CardTitle>Passkeys</CardTitle>
+                <CardDescription>
+                    Manage your passkeys for passwordless sign-in
+                </CardDescription>
+            </CardHeader>
 
-            <div className="border-border overflow-hidden rounded-lg border">
+            <CardContent>
                 {passkeys.length > 0 ? (
-                    passkeys.map((passkey) => (
-                        <PasskeyItem
-                            key={passkey.id}
-                            passkey={passkey}
-                            onDelete={handleDelete}
-                        />
-                    ))
+                    <div className="border-border overflow-hidden rounded-lg border">
+                        {passkeys.map((passkey) => (
+                            <PasskeyItem
+                                key={passkey.id}
+                                passkey={passkey}
+                                onDelete={handleDelete}
+                            />
+                        ))}
+                    </div>
                 ) : (
                     <EmptyState />
                 )}
-            </div>
+            </CardContent>
 
-            <PasskeyRegistration onSuccess={handleRegisterSuccess} />
-        </div>
+            <CardFooter className="flex-col items-end gap-4">
+                <PasskeyRegistration onSuccess={handleRegisterSuccess} />
+            </CardFooter>
+        </Card>
     );
 }

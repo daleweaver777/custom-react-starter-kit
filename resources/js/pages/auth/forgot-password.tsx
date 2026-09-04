@@ -1,12 +1,14 @@
-// Components
 import { Form, Head } from '@inertiajs/react';
-import InputError from '@/components/input-error';
+import AuthStatus from '@/components/auth-status';
 import TextLink from '@/components/text-link';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Spinner } from '@/components/ui/spinner';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
 
@@ -15,46 +17,42 @@ export default function ForgotPassword({ status }: { status?: string }) {
         <>
             <Head title="Forgot password" />
 
-            {status && (
-                <Alert className="mb-4">
-                    <AlertDescription>{status}</AlertDescription>
-                </Alert>
-            )}
+            <AuthStatus>{status}</AuthStatus>
 
             <div className="flex flex-col gap-6">
-                <Form {...email.form()}>
+                <Form {...email.form()} className="flex flex-col gap-6">
                     {({ processing, errors }) => (
-                        <div className="flex flex-col gap-6">
-                            <FieldGroup>
-                                <Field data-invalid={!!errors.email}>
-                                    <FieldLabel htmlFor="email">
-                                        Email address
-                                    </FieldLabel>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        name="email"
-                                        autoComplete="off"
-                                        autoFocus
-                                        placeholder="email@example.com"
-                                        aria-invalid={!!errors.email}
-                                    />
-
-                                    <InputError message={errors.email} />
-                                </Field>
-                            </FieldGroup>
+                        <FieldGroup>
+                            <Field data-invalid={!!errors.email}>
+                                <FieldLabel htmlFor="email">
+                                    Email address
+                                </FieldLabel>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    name="email"
+                                    autoComplete="off"
+                                    autoFocus
+                                    placeholder="email@example.com"
+                                    aria-invalid={!!errors.email}
+                                    aria-describedby={
+                                        errors.email ? 'email-error' : undefined
+                                    }
+                                />
+                                <FieldError id="email-error">
+                                    {errors.email}
+                                </FieldError>
+                            </Field>
 
                             <Button
+                                type="submit"
                                 className="w-full"
                                 disabled={processing}
                                 data-test="email-password-reset-link-button"
                             >
-                                {processing && (
-                                    <Spinner data-icon="inline-start" />
-                                )}
                                 Email password reset link
                             </Button>
-                        </div>
+                        </FieldGroup>
                     )}
                 </Form>
 

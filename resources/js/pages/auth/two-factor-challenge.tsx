@@ -1,9 +1,9 @@
 import { Form, Head, setLayoutProps } from '@inertiajs/react';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { useState } from 'react';
-import InputError from '@/components/input-error';
+import { textLinkClasses } from '@/components/text-link';
 import { Button } from '@/components/ui/button';
-import { Field, FieldGroup } from '@/components/ui/field';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
     InputOTP,
@@ -11,33 +11,30 @@ import {
     InputOTPSlot,
 } from '@/components/ui/input-otp';
 import { OTP_MAX_LENGTH } from '@/hooks/use-two-factor-auth';
+import { cn } from '@/lib/utils';
 import { store } from '@/routes/two-factor/login';
+
+const AUTH_CONFIG = {
+    code: {
+        title: 'Authentication code',
+        description:
+            'Enter the authentication code provided by your authenticator application.',
+        toggleText: 'login using a recovery code',
+    },
+    recovery: {
+        title: 'Recovery code',
+        description:
+            'Please confirm access to your account by entering one of your emergency recovery codes.',
+        toggleText: 'login using an authentication code',
+    },
+} as const;
 
 export default function TwoFactorChallenge() {
     const [showRecoveryInput, setShowRecoveryInput] = useState<boolean>(false);
     const [code, setCode] = useState<string>('');
 
-    let authConfigContent: {
-        title: string;
-        description: string;
-        toggleText: string;
-    };
-
-    if (showRecoveryInput) {
-        authConfigContent = {
-            title: 'Recovery code',
-            description:
-                'Please confirm access to your account by entering one of your emergency recovery codes.',
-            toggleText: 'login using an authentication code',
-        };
-    } else {
-        authConfigContent = {
-            title: 'Authentication code',
-            description:
-                'Enter the authentication code provided by your authenticator application.',
-            toggleText: 'login using a recovery code',
-        };
-    }
+    const authConfigContent =
+        AUTH_CONFIG[showRecoveryInput ? 'recovery' : 'code'];
 
     setLayoutProps({
         title: authConfigContent.title,
@@ -58,83 +55,91 @@ export default function TwoFactorChallenge() {
                 <Form
                     {...store.form()}
                     className="flex flex-col gap-4"
+                    onError={() => setCode('')}
                     resetOnError
                     resetOnSuccess={!showRecoveryInput}
                 >
                     {({ errors, processing, clearErrors }) => (
                         <>
-                            <FieldGroup>
-                                {showRecoveryInput ? (
-                                    <Field
-                                        data-invalid={!!errors.recovery_code}
+                            {showRecoveryInput ? (
+                                <Field data-invalid={!!errors.recovery_code}>
+                                    <FieldLabel
+                                        htmlFor="recovery_code"
+                                        className="sr-only"
                                     >
-                                        <Input
-                                            name="recovery_code"
-                                            type="text"
-                                            placeholder="Enter recovery code"
-                                            autoFocus={showRecoveryInput}
-                                            required
-                                            aria-invalid={
-                                                !!errors.recovery_code
-                                            }
-                                        />
-                                        <InputError
-                                            message={errors.recovery_code}
-                                        />
-                                    </Field>
-                                ) : (
-                                    <Field
-                                        data-invalid={!!errors.code}
-                                        className="items-center text-center"
+                                        Recovery code
+                                    </FieldLabel>
+                                    <Input
+                                        id="recovery_code"
+                                        name="recovery_code"
+                                        type="text"
+                                        placeholder="Enter recovery code"
+                                        autoFocus={showRecoveryInput}
+                                        required
+                                        aria-invalid={!!errors.recovery_code}
+                                        aria-describedby={
+                                            errors.recovery_code
+                                                ? 'recovery-code-error'
+                                                : undefined
+                                        }
+                                    />
+                                    <FieldError id="recovery-code-error">
+                                        {errors.recovery_code}
+                                    </FieldError>
+                                </Field>
+                            ) : (
+                                <Field
+                                    data-invalid={!!errors.code}
+                                    className="text-center"
+                                >
+                                    <InputOTP
+                                        name="code"
+                                        maxLength={OTP_MAX_LENGTH}
+                                        value={code}
+                                        onChange={(value) => setCode(value)}
+                                        disabled={processing}
+                                        pattern={REGEXP_ONLY_DIGITS}
+                                        autoFocus
+                                        containerClassName="justify-center"
                                     >
-                                        <InputOTP
-                                            name="code"
-                                            maxLength={OTP_MAX_LENGTH}
-                                            value={code}
-                                            onChange={(value) => setCode(value)}
-                                            disabled={processing}
-                                            pattern={REGEXP_ONLY_DIGITS}
-                                            autoFocus
-                                            aria-invalid={!!errors.code}
-                                        >
-                                            <InputOTPGroup>
-                                                {Array.from(
-                                                    { length: OTP_MAX_LENGTH },
-                                                    (_, index) => (
-                                                        <InputOTPSlot
-                                                            key={index}
-                                                            index={index}
-                                                        />
-                                                    ),
-                                                )}
-                                            </InputOTPGroup>
-                                        </InputOTP>
-                                        <InputError message={errors.code} />
-                                    </Field>
-                                )}
-                            </FieldGroup>
+                                        <InputOTPGroup>
+                                            {Array.from(
+                                                { length: OTP_MAX_LENGTH },
+                                                (_, index) => (
+                                                    <InputOTPSlot
+                                                        key={index}
+                                                        index={index}
+                                                    />
+                                                ),
+                                            )}
+                                        </InputOTPGroup>
+                                    </InputOTP>
+                                    <FieldError>{errors.code}</FieldError>
+                                </Field>
+                            )}
 
                             <Button
                                 type="submit"
                                 className="w-full"
                                 disabled={processing}
                             >
-                                Continue
+                                Log in
                             </Button>
 
                             <div className="text-muted-foreground text-center text-sm">
-                                <span>or you can</span>{' '}
-                                <Button
+                                <span>or you can </span>
+                                <button
                                     type="button"
-                                    variant="link"
-                                    size="sm"
-                                    className="h-auto p-0"
+                                    className={cn(
+                                        'cursor-pointer',
+                                        textLinkClasses,
+                                    )}
                                     onClick={() =>
                                         toggleRecoveryMode(clearErrors)
                                     }
                                 >
                                     {authConfigContent.toggleText}
-                                </Button>
+                                </button>
                             </div>
                         </>
                     )}
@@ -143,3 +148,8 @@ export default function TwoFactorChallenge() {
         </>
     );
 }
+
+TwoFactorChallenge.layout = {
+    title: AUTH_CONFIG.code.title,
+    description: AUTH_CONFIG.code.description,
+};

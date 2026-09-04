@@ -1,6 +1,8 @@
 import { usePasskeyRegister } from '@laravel/passkeys/react';
+import { Info } from 'lucide-react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
     Field,
@@ -64,9 +66,12 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
 
     if (!isSupported) {
         return (
-            <div className="text-muted-foreground text-sm">
-                Passkeys are not supported in this browser.
-            </div>
+            <Alert className="w-full">
+                <Info />
+                <AlertDescription>
+                    Passkeys are not supported in this browser.
+                </AlertDescription>
+            </Alert>
         );
     }
 
@@ -79,10 +84,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
     }
 
     return (
-        <form
-            onSubmit={handleSubmit}
-            className="border-border bg-muted/50 flex flex-col gap-4 rounded-lg border p-4"
-        >
+        <form onSubmit={handleSubmit} className="flex w-full flex-col gap-4">
             <FieldGroup>
                 <Field data-invalid={!!error}>
                     <FieldLabel htmlFor="passkey-name">Passkey name</FieldLabel>
@@ -92,6 +94,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="e.g., MacBook Pro, iPhone"
+                        className="bg-background"
                         autoFocus
                         aria-invalid={!!error}
                     />
