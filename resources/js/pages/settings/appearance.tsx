@@ -10,7 +10,7 @@ export default function Appearance() {
 
             <h1 className="sr-only">Appearance settings</h1>
 
-            <div className="space-y-6">
+            <div className="flex flex-col gap-6">
                 <Heading
                     variant="small"
                     title="Appearance settings"

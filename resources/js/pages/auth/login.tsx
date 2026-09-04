@@ -4,8 +4,9 @@ import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
 /* @chisel-registration */
 import { register } from '@/routes';
@@ -37,54 +38,64 @@ export default function Login({ status, canResetPassword }: Props) {
             >
                 {({ processing, errors }) => (
                     <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    required
-                                    autoFocus
-                                    tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
-                                />
-                                <InputError message={errors.email} />
-                            </div>
+                        <div className="flex flex-col gap-6">
+                            <FieldGroup>
+                                <Field data-invalid={!!errors.email}>
+                                    <FieldLabel htmlFor="email">
+                                        Email address
+                                    </FieldLabel>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        name="email"
+                                        required
+                                        autoFocus
+                                        tabIndex={1}
+                                        autoComplete="email"
+                                        placeholder="email@example.com"
+                                        aria-invalid={!!errors.email}
+                                    />
+                                    <InputError message={errors.email} />
+                                </Field>
 
-                            <div className="grid gap-2">
-                                <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="ml-auto text-sm"
-                                            tabIndex={5}
-                                        >
-                                            Forgot your password?
-                                        </TextLink>
-                                    )}
-                                </div>
-                                <PasswordInput
-                                    id="password"
-                                    name="password"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="current-password"
-                                    placeholder="Password"
-                                />
-                                <InputError message={errors.password} />
-                            </div>
+                                <Field data-invalid={!!errors.password}>
+                                    <div className="flex items-center">
+                                        <FieldLabel htmlFor="password">
+                                            Password
+                                        </FieldLabel>
+                                        {canResetPassword && (
+                                            <TextLink
+                                                href={request()}
+                                                className="ml-auto text-sm"
+                                                tabIndex={5}
+                                            >
+                                                Forgot your password?
+                                            </TextLink>
+                                        )}
+                                    </div>
+                                    <PasswordInput
+                                        id="password"
+                                        name="password"
+                                        required
+                                        tabIndex={2}
+                                        autoComplete="current-password"
+                                        placeholder="Password"
+                                        aria-invalid={!!errors.password}
+                                    />
+                                    <InputError message={errors.password} />
+                                </Field>
 
-                            <div className="flex items-center space-x-3">
-                                <Checkbox
-                                    id="remember"
-                                    name="remember"
-                                    tabIndex={3}
-                                />
-                                <Label htmlFor="remember">Remember me</Label>
-                            </div>
+                                <Field orientation="horizontal">
+                                    <Checkbox
+                                        id="remember"
+                                        name="remember"
+                                        tabIndex={3}
+                                    />
+                                    <FieldLabel htmlFor="remember">
+                                        Remember me
+                                    </FieldLabel>
+                                </Field>
+                            </FieldGroup>
 
                             <Button
                                 type="submit"
@@ -93,7 +104,9 @@ export default function Login({ status, canResetPassword }: Props) {
                                 disabled={processing}
                                 data-test="login-button"
                             >
-                                {processing && <Spinner />}
+                                {processing && (
+                                    <Spinner data-icon="inline-start" />
+                                )}
                                 Log in
                             </Button>
                         </div>
@@ -111,9 +124,9 @@ export default function Login({ status, canResetPassword }: Props) {
             </Form>
 
             {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
+                <Alert className="mb-4">
+                    <AlertDescription>{status}</AlertDescription>
+                </Alert>
             )}
         </>
     );

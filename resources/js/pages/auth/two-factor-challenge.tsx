@@ -3,6 +3,7 @@ import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { useMemo, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Field, FieldGroup } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
     InputOTP,
@@ -53,31 +54,39 @@ export default function TwoFactorChallenge() {
         <>
             <Head title="Two-factor authentication" />
 
-            <div className="space-y-6">
+            <div className="flex flex-col gap-6">
                 <Form
                     {...store.form()}
-                    className="space-y-4"
+                    className="flex flex-col gap-4"
                     resetOnError
                     resetOnSuccess={!showRecoveryInput}
                 >
                     {({ errors, processing, clearErrors }) => (
                         <>
-                            {showRecoveryInput ? (
-                                <>
-                                    <Input
-                                        name="recovery_code"
-                                        type="text"
-                                        placeholder="Enter recovery code"
-                                        autoFocus={showRecoveryInput}
-                                        required
-                                    />
-                                    <InputError
-                                        message={errors.recovery_code}
-                                    />
-                                </>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center space-y-3 text-center">
-                                    <div className="flex w-full items-center justify-center">
+                            <FieldGroup>
+                                {showRecoveryInput ? (
+                                    <Field
+                                        data-invalid={!!errors.recovery_code}
+                                    >
+                                        <Input
+                                            name="recovery_code"
+                                            type="text"
+                                            placeholder="Enter recovery code"
+                                            autoFocus={showRecoveryInput}
+                                            required
+                                            aria-invalid={
+                                                !!errors.recovery_code
+                                            }
+                                        />
+                                        <InputError
+                                            message={errors.recovery_code}
+                                        />
+                                    </Field>
+                                ) : (
+                                    <Field
+                                        data-invalid={!!errors.code}
+                                        className="items-center text-center"
+                                    >
                                         <InputOTP
                                             name="code"
                                             maxLength={OTP_MAX_LENGTH}
@@ -86,6 +95,7 @@ export default function TwoFactorChallenge() {
                                             disabled={processing}
                                             pattern={REGEXP_ONLY_DIGITS}
                                             autoFocus
+                                            aria-invalid={!!errors.code}
                                         >
                                             <InputOTPGroup>
                                                 {Array.from(
@@ -99,10 +109,10 @@ export default function TwoFactorChallenge() {
                                                 )}
                                             </InputOTPGroup>
                                         </InputOTP>
-                                    </div>
-                                    <InputError message={errors.code} />
-                                </div>
-                            )}
+                                        <InputError message={errors.code} />
+                                    </Field>
+                                )}
+                            </FieldGroup>
 
                             <Button
                                 type="submit"
@@ -113,16 +123,18 @@ export default function TwoFactorChallenge() {
                             </Button>
 
                             <div className="text-muted-foreground text-center text-sm">
-                                <span>or you can </span>
-                                <button
+                                <span>or you can</span>{' '}
+                                <Button
                                     type="button"
-                                    className="text-foreground cursor-pointer underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                                    variant="link"
+                                    size="sm"
+                                    className="h-auto p-0"
                                     onClick={() =>
                                         toggleRecoveryMode(clearErrors)
                                     }
                                 >
                                     {authConfigContent.toggleText}
-                                </button>
+                                </Button>
                             </div>
                         </>
                     )}

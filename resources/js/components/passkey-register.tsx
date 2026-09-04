@@ -2,8 +2,14 @@ import { usePasskeyRegister } from '@laravel/passkeys/react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import {
+    Field,
+    FieldDescription,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 
 type Props = {
     onSuccess: () => void;
@@ -75,28 +81,30 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
     return (
         <form
             onSubmit={handleSubmit}
-            className="border-border bg-muted/50 space-y-4 rounded-lg border p-4"
+            className="border-border bg-muted/50 flex flex-col gap-4 rounded-lg border p-4"
         >
-            <div className="grid gap-2">
-                <Label htmlFor="passkey-name">Passkey name</Label>
-                <Input
-                    id="passkey-name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g., MacBook Pro, iPhone"
-                    className="border-foreground/20 mt-1 block w-full"
-                    autoFocus
-                />
-                <p className="text-muted-foreground text-xs">
-                    A name helps you identify this passkey later.
-                </p>
-            </div>
-
-            {error && <InputError message={error} />}
+            <FieldGroup>
+                <Field data-invalid={!!error}>
+                    <FieldLabel htmlFor="passkey-name">Passkey name</FieldLabel>
+                    <Input
+                        id="passkey-name"
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g., MacBook Pro, iPhone"
+                        autoFocus
+                        aria-invalid={!!error}
+                    />
+                    <FieldDescription>
+                        A name helps you identify this passkey later.
+                    </FieldDescription>
+                    <InputError message={error ?? undefined} />
+                </Field>
+            </FieldGroup>
 
             <div className="flex gap-2">
                 <Button type="submit" disabled={isLoading || !name.trim()}>
+                    {isLoading && <Spinner data-icon="inline-start" />}
                     {isLoading ? 'Registering...' : 'Register passkey'}
                 </Button>
                 <Button type="button" variant="ghost" onClick={handleCancel}>

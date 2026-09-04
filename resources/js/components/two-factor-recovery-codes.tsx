@@ -10,6 +10,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { regenerateRecoveryCodes } from '@/routes/two-factor';
 
 type Props = {
@@ -73,7 +74,7 @@ export default function TwoFactorRecoveryCodes({
                         aria-controls="recovery-codes-section"
                     >
                         <RecoveryCodeIconComponent
-                            className="size-4"
+                            data-icon="inline-start"
                             aria-hidden="true"
                         />
                         {codesAreVisible ? 'Hide' : 'View'} recovery codes
@@ -126,15 +127,15 @@ export default function TwoFactorRecoveryCodes({
                                         ))
                                     ) : (
                                         <div
-                                            className="space-y-2"
+                                            className="flex flex-col gap-2"
                                             aria-label="Loading recovery codes"
                                         >
                                             {Array.from(
                                                 { length: 8 },
                                                 (_, index) => (
-                                                    <div
+                                                    <Skeleton
                                                         key={index}
-                                                        className="bg-muted-foreground/20 h-4 animate-pulse rounded"
+                                                        className="h-4"
                                                         aria-hidden="true"
                                                     />
                                                 ),

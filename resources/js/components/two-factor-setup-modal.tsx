@@ -12,6 +12,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Field, FieldGroup } from '@/components/ui/field';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from '@/components/ui/input-group';
 import {
     InputOTP,
     InputOTPGroup,
@@ -95,7 +102,7 @@ function TwoFactorSetupStep({
                         </div>
                     </div>
 
-                    <div className="flex w-full space-x-5">
+                    <div className="flex w-full gap-5">
                         <Button className="w-full" onClick={onNextStep}>
                             {buttonText}
                         </Button>
@@ -108,30 +115,27 @@ function TwoFactorSetupStep({
                         </span>
                     </div>
 
-                    <div className="flex w-full space-x-2">
-                        <div className="border-border flex w-full items-stretch overflow-hidden rounded-xl border">
-                            {!manualSetupKey ? (
-                                <div className="bg-muted flex h-full w-full items-center justify-center p-3">
-                                    <Spinner />
-                                </div>
+                    <InputGroup>
+                        <InputGroupInput
+                            type="text"
+                            readOnly
+                            value={manualSetupKey ?? ''}
+                            aria-label="Two-factor authentication setup key"
+                        />
+                        <InputGroupAddon align="inline-end">
+                            {manualSetupKey ? (
+                                <InputGroupButton
+                                    size="icon-xs"
+                                    onClick={() => copy(manualSetupKey)}
+                                    aria-label="Copy setup key"
+                                >
+                                    <IconComponent />
+                                </InputGroupButton>
                             ) : (
-                                <>
-                                    <input
-                                        type="text"
-                                        readOnly
-                                        value={manualSetupKey}
-                                        className="bg-background text-foreground h-full w-full p-3 outline-none"
-                                    />
-                                    <button
-                                        onClick={() => copy(manualSetupKey)}
-                                        className="border-border hover:bg-muted border-l px-3"
-                                    >
-                                        <IconComponent className="w-4" />
-                                    </button>
-                                </>
+                                <Spinner />
                             )}
-                        </div>
-                    </div>
+                        </InputGroupAddon>
+                    </InputGroup>
                 </>
             )}
         </>
@@ -171,38 +175,51 @@ function TwoFactorVerificationStep({
                 <>
                     <div
                         ref={pinInputContainerRef}
-                        className="relative w-full space-y-3"
+                        className="relative flex w-full flex-col gap-3"
                     >
-                        <div className="flex w-full flex-col items-center space-y-3 py-2">
-                            <InputOTP
-                                id="otp"
-                                name="code"
-                                maxLength={OTP_MAX_LENGTH}
-                                onChange={setCode}
-                                disabled={processing}
-                                pattern={REGEXP_ONLY_DIGITS}
-                                autoFocus
-                            >
-                                <InputOTPGroup>
-                                    {Array.from(
-                                        { length: OTP_MAX_LENGTH },
-                                        (_, index) => (
-                                            <InputOTPSlot
-                                                key={index}
-                                                index={index}
-                                            />
-                                        ),
-                                    )}
-                                </InputOTPGroup>
-                            </InputOTP>
-                            <InputError
-                                message={
-                                    errors?.confirmTwoFactorAuthentication?.code
+                        <FieldGroup>
+                            <Field
+                                data-invalid={
+                                    !!errors?.confirmTwoFactorAuthentication
+                                        ?.code
                                 }
-                            />
-                        </div>
+                                className="items-center py-2"
+                            >
+                                <InputOTP
+                                    id="otp"
+                                    name="code"
+                                    maxLength={OTP_MAX_LENGTH}
+                                    onChange={setCode}
+                                    disabled={processing}
+                                    pattern={REGEXP_ONLY_DIGITS}
+                                    autoFocus
+                                    aria-invalid={
+                                        !!errors?.confirmTwoFactorAuthentication
+                                            ?.code
+                                    }
+                                >
+                                    <InputOTPGroup>
+                                        {Array.from(
+                                            { length: OTP_MAX_LENGTH },
+                                            (_, index) => (
+                                                <InputOTPSlot
+                                                    key={index}
+                                                    index={index}
+                                                />
+                                            ),
+                                        )}
+                                    </InputOTPGroup>
+                                </InputOTP>
+                                <InputError
+                                    message={
+                                        errors?.confirmTwoFactorAuthentication
+                                            ?.code
+                                    }
+                                />
+                            </Field>
+                        </FieldGroup>
 
-                        <div className="flex w-full space-x-5">
+                        <div className="flex w-full gap-5">
                             <Button
                                 type="button"
                                 variant="outline"
