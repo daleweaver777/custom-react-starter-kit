@@ -8,6 +8,7 @@
         "dev": "vp dev",
         "check": "vp check",
         "check:fix": "vp check --fix",
+        "doctor": "npx react-doctor@latest",
         "types:check": "tsc --noEmit"
     },
     "dependencies": {

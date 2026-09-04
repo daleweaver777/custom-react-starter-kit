@@ -5,7 +5,7 @@ import type { FlashToast } from '@/types/ui';
 
 export function useFlashToast(): void {
     useEffect(() => {
-        return router.on('flash', (event) => {
+        const removeListener = router.on('flash', (event) => {
             const flash = (event as CustomEvent).detail?.flash;
             const data = flash?.toast as FlashToast | undefined;
 
@@ -18,5 +18,7 @@ export function useFlashToast(): void {
                 type: data.type,
             });
         });
+
+        return () => removeListener();
     }, []);
 }

@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { Eye, EyeOff, LockKeyhole, RefreshCw } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AlertError from '@/components/alert-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,12 +28,12 @@ export default function TwoFactorRecoveryCodes({
     const codesSectionRef = useRef<HTMLDivElement | null>(null);
     const canRegenerateCodes = recoveryCodesList.length > 0 && codesAreVisible;
 
-    const toggleCodesVisibility = useCallback(async () => {
+    const toggleCodesVisibility = async () => {
         if (!codesAreVisible && !recoveryCodesList.length) {
             await fetchRecoveryCodes();
         }
 
-        setCodesAreVisible(!codesAreVisible);
+        setCodesAreVisible((previous) => !previous);
 
         if (!codesAreVisible) {
             setTimeout(() => {
@@ -43,7 +43,7 @@ export default function TwoFactorRecoveryCodes({
                 });
             });
         }
-    }, [codesAreVisible, recoveryCodesList.length, fetchRecoveryCodes]);
+    };
 
     useEffect(() => {
         if (!recoveryCodesList.length) {
@@ -101,6 +101,7 @@ export default function TwoFactorRecoveryCodes({
                 </div>
                 <div
                     id="recovery-codes-section"
+                    ref={codesSectionRef}
                     className={`relative overflow-hidden transition-all duration-300 ${codesAreVisible ? 'h-auto opacity-100' : 'h-0 opacity-0'}`}
                     aria-hidden={!codesAreVisible}
                 >
@@ -109,40 +110,37 @@ export default function TwoFactorRecoveryCodes({
                             <AlertError errors={errors} />
                         ) : (
                             <>
-                                <div
-                                    ref={codesSectionRef}
-                                    className="bg-muted grid gap-1 rounded-lg p-4 font-mono text-sm"
-                                    role="list"
-                                    aria-label="Recovery codes"
-                                >
-                                    {recoveryCodesList.length ? (
-                                        recoveryCodesList.map((code, index) => (
-                                            <div
-                                                key={index}
-                                                role="listitem"
+                                {recoveryCodesList.length ? (
+                                    <ul
+                                        className="bg-muted grid gap-1 rounded-lg p-4 font-mono text-sm"
+                                        aria-label="Recovery codes"
+                                    >
+                                        {recoveryCodesList.map((code) => (
+                                            <li
+                                                key={code}
                                                 className="select-text"
                                             >
                                                 {code}
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div
-                                            className="flex flex-col gap-2"
-                                            aria-label="Loading recovery codes"
-                                        >
-                                            {Array.from(
-                                                { length: 8 },
-                                                (_, index) => (
-                                                    <Skeleton
-                                                        key={index}
-                                                        className="h-4"
-                                                        aria-hidden="true"
-                                                    />
-                                                ),
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <div
+                                        className="bg-muted flex flex-col gap-2 rounded-lg p-4"
+                                        aria-label="Loading recovery codes"
+                                    >
+                                        {Array.from(
+                                            { length: 8 },
+                                            (_, index) => (
+                                                <Skeleton
+                                                    key={index}
+                                                    className="h-4"
+                                                    aria-hidden="true"
+                                                />
+                                            ),
+                                        )}
+                                    </div>
+                                )}
 
                                 <div className="text-muted-foreground text-xs select-none">
                                     <p id="regenerate-warning">

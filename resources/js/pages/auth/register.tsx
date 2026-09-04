@@ -34,7 +34,6 @@ export default function Register({ passwordRules }: Props) {
                                         type="text"
                                         required
                                         autoFocus
-                                        tabIndex={1}
                                         autoComplete="name"
                                         name="name"
                                         placeholder="Full name"
@@ -51,7 +50,6 @@ export default function Register({ passwordRules }: Props) {
                                         id="email"
                                         type="email"
                                         required
-                                        tabIndex={2}
                                         autoComplete="email"
                                         name="email"
                                         placeholder="email@example.com"
@@ -67,7 +65,6 @@ export default function Register({ passwordRules }: Props) {
                                     <PasswordInput
                                         id="password"
                                         required
-                                        tabIndex={3}
                                         autoComplete="new-password"
                                         name="password"
                                         placeholder="Password"
@@ -88,7 +85,6 @@ export default function Register({ passwordRules }: Props) {
                                     <PasswordInput
                                         id="password_confirmation"
                                         required
-                                        tabIndex={4}
                                         autoComplete="new-password"
                                         name="password_confirmation"
                                         placeholder="Confirm password"
@@ -106,7 +102,6 @@ export default function Register({ passwordRules }: Props) {
                             <Button
                                 type="submit"
                                 className="w-full"
-                                tabIndex={5}
                                 data-test="register-user-button"
                             >
                                 {processing && (
@@ -118,9 +113,7 @@ export default function Register({ passwordRules }: Props) {
 
                         <div className="text-muted-foreground text-center text-sm">
                             Already have an account?{' '}
-                            <TextLink href={login()} tabIndex={6}>
-                                Log in
-                            </TextLink>
+                            <TextLink href={login()}>Log in</TextLink>
                         </div>
                     </>
                 )}

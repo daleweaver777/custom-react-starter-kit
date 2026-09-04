@@ -1,6 +1,6 @@
 import { Form, Head, setLayoutProps } from '@inertiajs/react';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup } from '@/components/ui/field';
@@ -17,27 +17,27 @@ export default function TwoFactorChallenge() {
     const [showRecoveryInput, setShowRecoveryInput] = useState<boolean>(false);
     const [code, setCode] = useState<string>('');
 
-    const authConfigContent = useMemo<{
+    let authConfigContent: {
         title: string;
         description: string;
         toggleText: string;
-    }>(() => {
-        if (showRecoveryInput) {
-            return {
-                title: 'Recovery code',
-                description:
-                    'Please confirm access to your account by entering one of your emergency recovery codes.',
-                toggleText: 'login using an authentication code',
-            };
-        }
+    };
 
-        return {
+    if (showRecoveryInput) {
+        authConfigContent = {
+            title: 'Recovery code',
+            description:
+                'Please confirm access to your account by entering one of your emergency recovery codes.',
+            toggleText: 'login using an authentication code',
+        };
+    } else {
+        authConfigContent = {
             title: 'Authentication code',
             description:
                 'Enter the authentication code provided by your authenticator application.',
             toggleText: 'login using a recovery code',
         };
-    }, [showRecoveryInput]);
+    }
 
     setLayoutProps({
         title: authConfigContent.title,

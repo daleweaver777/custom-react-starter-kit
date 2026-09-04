@@ -130,7 +130,7 @@ export default function Welcome() {
                         <div className="relative -mb-px aspect-[335/364] w-full shrink-0 overflow-hidden rounded-t-lg bg-[#fff2f2] lg:mb-0 lg:-ml-px lg:aspect-auto lg:w-[438px] lg:rounded-t-none lg:rounded-r-lg dark:bg-[#1D0002]">
                             {/* Laravel Logo */}
                             <svg
-                                className="w-full max-w-none translate-y-0 text-[#F53003] opacity-100 transition-all duration-750 dark:text-[#F61500] starting:opacity-0 motion-safe:starting:translate-y-6"
+                                className="w-full max-w-none translate-y-0 text-[#F53003] opacity-100 transition-[opacity,transform] duration-750 dark:text-[#F61500] starting:opacity-0 motion-safe:starting:translate-y-6"
                                 viewBox="0 0 438 104"
                                 fill="none"
                                 xmlns="http://www.w3.org/2000/svg"
@@ -172,7 +172,7 @@ export default function Welcome() {
                                 fill="none"
                                 xmlns="http://www.w3.org/2000/svg"
                             >
-                                <g className="text-[#1B1B18] opacity-100 mix-blend-darken transition-all delay-300 duration-750 dark:text-black dark:mix-blend-normal starting:opacity-0">
+                                <g className="text-[#1B1B18] opacity-100 mix-blend-darken transition-[opacity,transform] delay-300 duration-750 dark:text-black dark:mix-blend-normal starting:opacity-0">
                                     <mask
                                         id="path-1-mask"
                                         maskUnits="userSpaceOnUse"
@@ -214,7 +214,7 @@ export default function Welcome() {
                                     />
                                 </g>
 
-                                <g className="text-[#F3BEC7] opacity-100 transition-all delay-400 duration-750 dark:text-[#4B0600] starting:opacity-0 motion-safe:starting:-translate-x-[26px]">
+                                <g className="text-[#F3BEC7] opacity-100 transition-[opacity,transform] delay-400 duration-750 dark:text-[#4B0600] starting:opacity-0 motion-safe:starting:-translate-x-[26px]">
                                     <mask
                                         id="path-2-mask"
                                         maskUnits="userSpaceOnUse"
@@ -256,7 +256,7 @@ export default function Welcome() {
                                     />
                                 </g>
 
-                                <g className="text-[#F8B803] opacity-100 mix-blend-color transition-all delay-400 duration-750 dark:text-[#391800] dark:mix-blend-hard-light starting:opacity-0 motion-safe:starting:-translate-x-[51px]">
+                                <g className="text-[#F8B803] opacity-100 mix-blend-color transition-[opacity,transform] delay-400 duration-750 dark:text-[#391800] dark:mix-blend-hard-light starting:opacity-0 motion-safe:starting:-translate-x-[51px]">
                                     <mask
                                         id="path-3-mask"
                                         maskUnits="userSpaceOnUse"
@@ -298,7 +298,7 @@ export default function Welcome() {
                                     />
                                 </g>
 
-                                <g className="text-[#F3BEC7] opacity-100 mix-blend-multiply transition-all delay-400 duration-750 dark:text-[#733000] dark:mix-blend-normal starting:opacity-0 motion-safe:starting:-translate-x-[78px]">
+                                <g className="text-[#F3BEC7] opacity-100 mix-blend-multiply transition-[opacity,transform] delay-400 duration-750 dark:text-[#733000] dark:mix-blend-normal starting:opacity-0 motion-safe:starting:-translate-x-[78px]">
                                     <mask
                                         id="path-4-mask"
                                         maskUnits="userSpaceOnUse"
@@ -340,7 +340,7 @@ export default function Welcome() {
                                     />
                                 </g>
 
-                                <g className="text-[#F3BEC7] opacity-100 mix-blend-hard-light transition-all delay-400 duration-750 dark:text-[#4B0600] starting:opacity-0 motion-safe:starting:-translate-x-[102px]">
+                                <g className="text-[#F3BEC7] opacity-100 mix-blend-hard-light transition-[opacity,transform] delay-400 duration-750 dark:text-[#4B0600] starting:opacity-0 motion-safe:starting:-translate-x-[102px]">
                                     <mask
                                         id="path-5-mask"
                                         maskUnits="userSpaceOnUse"

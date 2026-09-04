@@ -29,6 +29,7 @@ export function NavFooter({
                                 render={
                                     <a
                                         href={toUrl(item.href)}
+                                        aria-label={item.title}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                     />

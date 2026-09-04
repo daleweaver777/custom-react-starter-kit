@@ -148,9 +148,9 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                     <div className="ml-6 hidden h-full items-center space-x-6 lg:flex">
                         <NavigationMenu className="flex h-full items-stretch">
                             <NavigationMenuList className="flex h-full items-stretch space-x-2">
-                                {mainNavItems.map((item, index) => (
+                                {mainNavItems.map((item) => (
                                     <NavigationMenuItem
-                                        key={index}
+                                        key={item.title}
                                         className="relative flex h-full items-center"
                                     >
                                         <Link
@@ -184,6 +184,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                 variant="ghost"
                                 size="icon"
                                 className="group h-9 w-9 cursor-pointer"
+                                aria-label="Search"
                             >
                                 <Search className="!size-5 opacity-80 group-hover:opacity-100" />
                             </Button>
@@ -198,6 +199,9 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                                             href={toUrl(
                                                                 item.href,
                                                             )}
+                                                            aria-label={
+                                                                item.title
+                                                            }
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                         />
