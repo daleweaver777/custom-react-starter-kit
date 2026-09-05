@@ -11,7 +11,6 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Spinner } from '@/components/ui/spinner';
 
 type Props = {
     onSuccess: () => void;
@@ -56,7 +55,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
             return;
         }
 
-        await register(name);
+        await register(name.trim());
     };
 
     const handleCancel = () => {
@@ -91,6 +90,13 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
                     <Input
                         id="passkey-name"
                         type="text"
+                        required
+                        maxLength={255}
+                        aria-describedby={
+                            error
+                                ? 'passkey-name-description passkey-name-error'
+                                : 'passkey-name-description'
+                        }
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="e.g., MacBook Pro, iPhone"
@@ -98,17 +104,19 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
                         autoFocus
                         aria-invalid={!!error}
                     />
-                    <FieldDescription>
+                    <FieldDescription id="passkey-name-description">
                         A name helps you identify this passkey later.
                     </FieldDescription>
-                    <InputError message={error ?? undefined} />
+                    <InputError
+                        id="passkey-name-error"
+                        message={error ?? undefined}
+                    />
                 </Field>
             </FieldGroup>
 
             <div className="flex gap-2">
                 <Button type="submit" disabled={isLoading || !name.trim()}>
-                    {isLoading && <Spinner data-icon="inline-start" />}
-                    {isLoading ? 'Registering...' : 'Register passkey'}
+                    Register passkey
                 </Button>
                 <Button type="button" variant="ghost" onClick={handleCancel}>
                     Cancel

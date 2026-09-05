@@ -94,6 +94,15 @@ export default function TwoFactorChallenge() {
                                 >
                                     <InputOTP
                                         name="code"
+                                        aria-label="Authentication code"
+                                        aria-invalid={!!errors.code}
+                                        aria-describedby={
+                                            errors.code
+                                                ? 'code-error'
+                                                : undefined
+                                        }
+                                        required
+                                        minLength={OTP_MAX_LENGTH}
                                         maxLength={OTP_MAX_LENGTH}
                                         value={code}
                                         onChange={(value) => setCode(value)}
@@ -114,7 +123,9 @@ export default function TwoFactorChallenge() {
                                             )}
                                         </InputOTPGroup>
                                     </InputOTP>
-                                    <FieldError>{errors.code}</FieldError>
+                                    <FieldError id="code-error">
+                                        {errors.code}
+                                    </FieldError>
                                 </Field>
                             )}
 

@@ -81,6 +81,7 @@ export default function Security(props: Props) {
 
                                         <PasswordInput
                                             id="current_password"
+                                            required
                                             ref={currentPasswordInput}
                                             name="current_password"
                                             autoComplete="current-password"
@@ -88,9 +89,15 @@ export default function Security(props: Props) {
                                             aria-invalid={
                                                 !!errors.current_password
                                             }
+                                            aria-describedby={
+                                                errors.current_password
+                                                    ? 'current_password-error'
+                                                    : undefined
+                                            }
                                         />
 
                                         <InputError
+                                            id="current_password-error"
                                             message={errors.current_password}
                                         />
                                     </Field>
@@ -102,15 +109,24 @@ export default function Security(props: Props) {
 
                                         <PasswordInput
                                             id="password"
+                                            required
                                             ref={passwordInput}
                                             name="password"
                                             autoComplete="new-password"
                                             placeholder="New password"
                                             passwordrules={props.passwordRules}
                                             aria-invalid={!!errors.password}
+                                            aria-describedby={
+                                                errors.password
+                                                    ? 'password-error'
+                                                    : undefined
+                                            }
                                         />
 
-                                        <InputError message={errors.password} />
+                                        <InputError
+                                            id="password-error"
+                                            message={errors.password}
+                                        />
                                     </Field>
 
                                     <Field
@@ -124,6 +140,7 @@ export default function Security(props: Props) {
 
                                         <PasswordInput
                                             id="password_confirmation"
+                                            required
                                             name="password_confirmation"
                                             autoComplete="new-password"
                                             placeholder="Confirm password"
@@ -131,9 +148,15 @@ export default function Security(props: Props) {
                                             aria-invalid={
                                                 !!errors.password_confirmation
                                             }
+                                            aria-describedby={
+                                                errors.password_confirmation
+                                                    ? 'password_confirmation-error'
+                                                    : undefined
+                                            }
                                         />
 
                                         <InputError
+                                            id="password_confirmation-error"
                                             message={
                                                 errors.password_confirmation
                                             }

@@ -76,9 +76,17 @@ export default function Profile(
                                             autoComplete="name"
                                             placeholder="Full name"
                                             aria-invalid={!!errors.name}
+                                            aria-describedby={
+                                                errors.name
+                                                    ? 'name-error'
+                                                    : undefined
+                                            }
                                         />
 
-                                        <InputError message={errors.name} />
+                                        <InputError
+                                            id="name-error"
+                                            message={errors.name}
+                                        />
                                     </Field>
 
                                     <Field data-invalid={!!errors.email}>
@@ -95,9 +103,17 @@ export default function Profile(
                                             autoComplete="username"
                                             placeholder="Email address"
                                             aria-invalid={!!errors.email}
+                                            aria-describedby={
+                                                errors.email
+                                                    ? 'email-error'
+                                                    : undefined
+                                            }
                                         />
 
-                                        <InputError message={errors.email} />
+                                        <InputError
+                                            id="email-error"
+                                            message={errors.email}
+                                        />
                                     </Field>
                                 </FieldGroup>
 

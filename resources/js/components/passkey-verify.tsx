@@ -56,7 +56,7 @@ export default function PasskeyVerify({
                 <FieldError className="text-center">{error}</FieldError>
             </div>
 
-            <FieldSeparator className="my-6">
+            <FieldSeparator>
                 {separator ?? 'Or continue with email'}
             </FieldSeparator>
         </>

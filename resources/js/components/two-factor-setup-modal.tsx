@@ -190,6 +190,15 @@ function TwoFactorVerificationStep({
                                 <InputOTP
                                     id="otp"
                                     name="code"
+                                    aria-label="Authentication code"
+                                    aria-describedby={
+                                        errors?.confirmTwoFactorAuthentication
+                                            ?.code
+                                            ? 'setup-code-error'
+                                            : undefined
+                                    }
+                                    required
+                                    minLength={OTP_MAX_LENGTH}
                                     maxLength={OTP_MAX_LENGTH}
                                     onChange={setCode}
                                     disabled={processing}
@@ -213,6 +222,7 @@ function TwoFactorVerificationStep({
                                     </InputOTPGroup>
                                 </InputOTP>
                                 <InputError
+                                    id="setup-code-error"
                                     message={
                                         errors?.confirmTwoFactorAuthentication
                                             ?.code
@@ -349,7 +359,7 @@ export default function TwoFactorSetupModal({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex flex-col items-center space-y-5">
+                <div className="flex flex-col items-center gap-5">
                     {showVerificationStep ? (
                         <TwoFactorVerificationStep
                             onClose={handleClose}

@@ -30,7 +30,9 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                 {({ processing, errors }) => (
                     <FieldGroup>
                         <Field data-invalid={!!errors.email}>
-                            <FieldLabel htmlFor="email">Email</FieldLabel>
+                            <FieldLabel htmlFor="email">
+                                Email address
+                            </FieldLabel>
                             <Input
                                 id="email"
                                 type="email"
@@ -49,13 +51,16 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                         </Field>
 
                         <Field data-invalid={!!errors.password}>
-                            <FieldLabel htmlFor="password">Password</FieldLabel>
+                            <FieldLabel htmlFor="password">
+                                New password
+                            </FieldLabel>
                             <PasswordInput
                                 id="password"
+                                required
                                 name="password"
                                 autoComplete="new-password"
                                 autoFocus
-                                placeholder="Password"
+                                placeholder="New password"
                                 passwordrules={passwordRules}
                                 aria-invalid={!!errors.password}
                                 aria-describedby={
@@ -75,6 +80,7 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                             </FieldLabel>
                             <PasswordInput
                                 id="password_confirmation"
+                                required
                                 name="password_confirmation"
                                 autoComplete="new-password"
                                 placeholder="Confirm password"

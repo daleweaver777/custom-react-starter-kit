@@ -44,6 +44,7 @@ export default function ConfirmPassword() {
                             <FieldLabel htmlFor="password">Password</FieldLabel>
                             <PasswordInput
                                 id="password"
+                                required
                                 name="password"
                                 placeholder="Password"
                                 autoComplete="current-password"

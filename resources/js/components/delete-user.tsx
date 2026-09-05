@@ -87,22 +87,29 @@ export default function DeleteUser() {
                                     <FieldGroup>
                                         <Field data-invalid={!!errors.password}>
                                             <FieldLabel
-                                                htmlFor="password"
+                                                htmlFor="delete-password"
                                                 className="sr-only"
                                             >
                                                 Password
                                             </FieldLabel>
 
                                             <PasswordInput
-                                                id="password"
+                                                id="delete-password"
                                                 name="password"
+                                                required
                                                 ref={passwordInput}
                                                 placeholder="Password"
                                                 autoComplete="current-password"
                                                 aria-invalid={!!errors.password}
+                                                aria-describedby={
+                                                    errors.password
+                                                        ? 'delete-password-error'
+                                                        : undefined
+                                                }
                                             />
 
                                             <InputError
+                                                id="delete-password-error"
                                                 message={errors.password}
                                             />
                                         </Field>

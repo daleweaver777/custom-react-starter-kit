@@ -29,7 +29,9 @@ export default function PasswordInput({
                     aria-label={
                         showPassword ? 'Hide password' : 'Show password'
                     }
-                    tabIndex={-1}
+                    aria-controls={props.id}
+                    aria-pressed={showPassword}
+                    disabled={props.disabled}
                 >
                     {showPassword ? <EyeOff /> : <Eye />}
                 </InputGroupButton>
