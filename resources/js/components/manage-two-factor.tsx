@@ -92,6 +92,7 @@ export default function ManageTwoFactor(props: Props) {
 
                             <AlertDialogContent size="sm">
                                 <Form
+                                    noValidate
                                     {...disable.form()}
                                     className="grid gap-4"
                                 >
@@ -138,6 +139,7 @@ export default function ManageTwoFactor(props: Props) {
                         </Button>
                     ) : (
                         <Form
+                            noValidate
                             {...enable.form()}
                             onSuccess={() => setShowSetupModal(true)}
                         >

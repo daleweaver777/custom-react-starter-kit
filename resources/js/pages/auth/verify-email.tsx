@@ -15,7 +15,11 @@ export default function VerifyEmail({ status }: { status?: string }) {
                     'A new verification link has been sent to the email address you provided during registration.'}
             </AuthStatus>
 
-            <Form {...send.form()} className="flex flex-col gap-6 text-center">
+            <Form
+                noValidate
+                {...send.form()}
+                className="flex flex-col gap-6 text-center"
+            >
                 {({ processing }) => (
                     <>
                         <Button

@@ -37,6 +37,7 @@ export default function Login({ status, canResetPassword }: Props) {
             {/* @end-chisel-passkeys */}
 
             <Form
+                noValidate
                 {...store.form()}
                 resetOnError={['password']}
                 resetOnSuccess={['password']}

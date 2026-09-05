@@ -21,6 +21,7 @@ export default function Register({ passwordRules }: Props) {
         <>
             <Head title="Register" />
             <Form
+                noValidate
                 {...store.form()}
                 resetOnError={['password', 'password_confirmation']}
                 resetOnSuccess={['password', 'password_confirmation']}

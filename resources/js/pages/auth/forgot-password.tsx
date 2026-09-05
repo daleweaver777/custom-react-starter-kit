@@ -20,7 +20,11 @@ export default function ForgotPassword({ status }: { status?: string }) {
             <AuthStatus>{status}</AuthStatus>
 
             <div className="flex flex-col gap-6">
-                <Form {...email.form()} className="flex flex-col gap-6">
+                <Form
+                    noValidate
+                    {...email.form()}
+                    className="flex flex-col gap-6"
+                >
                     {({ processing, errors }) => (
                         <FieldGroup>
                             <Field data-invalid={!!errors.email}>

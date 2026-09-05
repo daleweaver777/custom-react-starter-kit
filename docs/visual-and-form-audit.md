@@ -2,6 +2,10 @@
 
 Reviewed the local app at http://localhost:8000 using the existing test account. Inspected desktop (1280 × 720) and mobile (390 × 844) views, including light and dark appearances. This is a starter-kit audit: the Laravel welcome content and dashboard placeholders are intentional scaffolding.
 
+## Validation follow-up
+
+All forms now use `noValidate` at the user's request. Browser constraint messages and submission blocking are disabled; Laravel validates submitted requests and supplies inline errors. Input constraints remain for semantics. This supersedes the native-validation behavior described in the original inspection below.
+
 ## Changes made
 
 - Removed excess separator margins on passkey login/password confirmation. The auth layout already provides spacing; the additional margins made these screens unnecessarily tall.

@@ -53,6 +53,7 @@ export default function Profile(
                 </CardHeader>
 
                 <Form
+                    noValidate
                     {...ProfileController.update.form()}
                     options={{
                         preserveScroll: true,

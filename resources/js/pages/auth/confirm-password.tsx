@@ -34,6 +34,7 @@ export default function ConfirmPassword() {
             {/* @end-chisel-passkeys */}
 
             <Form
+                noValidate
                 {...store.form()}
                 resetOnError={['password']}
                 resetOnSuccess={['password']}
