@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { useId } from 'react';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,6 +9,7 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { focusFirstFormError } from '@/lib/utils';
 import { update } from '@/routes/password';
 
 type Props = {
@@ -17,18 +19,22 @@ type Props = {
 };
 
 export default function ResetPassword({ token, email, passwordRules }: Props) {
+    const formId = useId();
+
     return (
         <>
             <Head title="Reset password" />
 
             <Form
+                id={formId}
+                onError={(errors) => focusFirstFormError(formId, errors)}
                 noValidate
                 {...update.form()}
                 transform={(data) => ({ ...data, token, email })}
                 resetOnError={['password', 'password_confirmation']}
                 resetOnSuccess={['password', 'password_confirmation']}
             >
-                {({ processing, errors }) => (
+                {({ processing, errors, clearErrors }) => (
                     <FieldGroup>
                         <Field data-invalid={!!errors.email}>
                             <FieldLabel htmlFor="email">
@@ -59,6 +65,12 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                                 id="password"
                                 required
                                 name="password"
+                                onChange={() =>
+                                    clearErrors(
+                                        'password',
+                                        'password_confirmation',
+                                    )
+                                }
                                 autoComplete="new-password"
                                 autoFocus
                                 placeholder="New password"
@@ -83,6 +95,9 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                                 id="password_confirmation"
                                 required
                                 name="password_confirmation"
+                                onChange={() =>
+                                    clearErrors('password_confirmation')
+                                }
                                 autoComplete="new-password"
                                 placeholder="Confirm password"
                                 passwordrules={passwordRules}

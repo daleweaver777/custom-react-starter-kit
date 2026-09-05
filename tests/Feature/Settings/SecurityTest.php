@@ -99,7 +99,7 @@ class SecurityTest extends TestCase
             ->from(route('security.edit'))
             ->put(route('user-password.update'), [
                 'current_password' => 'password',
-                'password' => 'new-password',
+                'new_password' => 'new-password',
                 'password_confirmation' => 'new-password',
             ]);
 
@@ -119,12 +119,41 @@ class SecurityTest extends TestCase
             ->from(route('security.edit'))
             ->put(route('user-password.update'), [
                 'current_password' => 'wrong-password',
-                'password' => 'new-password',
+                'new_password' => 'new-password',
                 'password_confirmation' => 'new-password',
             ]);
 
         $response
             ->assertSessionHasErrors('current_password')
             ->assertRedirect(route('security.edit'));
+    }
+
+    public function test_password_mismatch_is_reported_on_confirmation(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->put(route('user-password.update'), [
+                'current_password' => 'password',
+                'new_password' => 'new-password',
+                'password_confirmation' => 'different-password',
+            ])->assertSessionHasErrors('password_confirmation')
+            ->assertSessionDoesntHaveErrors('new_password');
+
+        $this->assertTrue(Hash::check('password', $user->refresh()->password));
+    }
+
+    public function test_new_password_is_required_even_if_password_is_submitted(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->put(route('user-password.update'), [
+                'current_password' => 'password',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ])->assertSessionHasErrors('new_password');
+
+        $this->assertTrue(Hash::check('password', $user->refresh()->password));
     }
 }

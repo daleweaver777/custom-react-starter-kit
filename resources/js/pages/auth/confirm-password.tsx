@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { useId } from 'react';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import {
@@ -7,6 +8,7 @@ import {
     FieldGroup,
     FieldLabel,
 } from '@/components/ui/field';
+import { focusFirstFormError } from '@/lib/utils';
 import { store } from '@/routes/password/confirm';
 /* @chisel-passkeys */
 import {
@@ -17,6 +19,8 @@ import PasskeyVerify from '@/components/passkey-verify';
 /* @end-chisel-passkeys */
 
 export default function ConfirmPassword() {
+    const formId = useId();
+
     return (
         <>
             <Head title="Confirm password" />
@@ -34,12 +38,14 @@ export default function ConfirmPassword() {
             {/* @end-chisel-passkeys */}
 
             <Form
+                id={formId}
+                onError={(errors) => focusFirstFormError(formId, errors)}
                 noValidate
                 {...store.form()}
                 resetOnError={['password']}
                 resetOnSuccess={['password']}
             >
-                {({ processing, errors }) => (
+                {({ processing, errors, clearErrors }) => (
                     <FieldGroup>
                         <Field data-invalid={!!errors.password}>
                             <FieldLabel htmlFor="password">Password</FieldLabel>
@@ -47,6 +53,7 @@ export default function ConfirmPassword() {
                                 id="password"
                                 required
                                 name="password"
+                                onChange={() => clearErrors('password')}
                                 placeholder="Password"
                                 autoComplete="current-password"
                                 autoFocus

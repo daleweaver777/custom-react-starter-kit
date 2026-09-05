@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { useId } from 'react';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { focusFirstFormError } from '@/lib/utils';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 
@@ -17,17 +19,21 @@ type Props = {
 };
 
 export default function Register({ passwordRules }: Props) {
+    const formId = useId();
+
     return (
         <>
             <Head title="Register" />
             <Form
+                id={formId}
+                onError={(errors) => focusFirstFormError(formId, errors)}
                 noValidate
                 {...store.form()}
                 resetOnError={['password', 'password_confirmation']}
                 resetOnSuccess={['password', 'password_confirmation']}
                 className="flex flex-col gap-6"
             >
-                {({ processing, errors }) => (
+                {({ processing, errors, clearErrors }) => (
                     <>
                         <FieldGroup>
                             <Field data-invalid={!!errors.name}>
@@ -39,6 +45,7 @@ export default function Register({ passwordRules }: Props) {
                                     autoFocus
                                     autoComplete="name"
                                     name="name"
+                                    onChange={() => clearErrors('name')}
                                     placeholder="Full name"
                                     aria-invalid={!!errors.name}
                                     aria-describedby={
@@ -60,6 +67,7 @@ export default function Register({ passwordRules }: Props) {
                                     required
                                     autoComplete="email"
                                     name="email"
+                                    onChange={() => clearErrors('email')}
                                     placeholder="email@example.com"
                                     aria-invalid={!!errors.email}
                                     aria-describedby={
@@ -80,6 +88,12 @@ export default function Register({ passwordRules }: Props) {
                                     required
                                     autoComplete="new-password"
                                     name="password"
+                                    onChange={() =>
+                                        clearErrors(
+                                            'password',
+                                            'password_confirmation',
+                                        )
+                                    }
                                     placeholder="Password"
                                     passwordrules={passwordRules}
                                     aria-invalid={!!errors.password}
@@ -105,6 +119,9 @@ export default function Register({ passwordRules }: Props) {
                                     required
                                     autoComplete="new-password"
                                     name="password_confirmation"
+                                    onChange={() =>
+                                        clearErrors('password_confirmation')
+                                    }
                                     placeholder="Confirm password"
                                     passwordrules={passwordRules}
                                     aria-invalid={

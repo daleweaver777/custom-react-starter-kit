@@ -36,4 +36,18 @@ class RegistrationTest extends TestCase
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
     }
+
+    public function test_password_mismatch_is_reported_on_confirmation(): void
+    {
+        $this->post(route('register.store'), [
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'different-password',
+        ])->assertSessionHasErrors('password_confirmation')
+            ->assertSessionDoesntHaveErrors('password');
+
+        $this->assertGuest();
+        $this->assertDatabaseMissing('users', ['email' => 'test@example.com']);
+    }
 }

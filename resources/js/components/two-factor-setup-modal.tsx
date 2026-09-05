@@ -1,7 +1,7 @@
 import { Form } from '@inertiajs/react';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { Check, Copy, ScanLine } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import AlertError from '@/components/alert-error';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useAppearance } from '@/hooks/use-appearance';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { OTP_MAX_LENGTH } from '@/hooks/use-two-factor-auth';
+import { focusFirstFormError } from '@/lib/utils';
 import { confirm } from '@/routes/two-factor';
 
 function GridScanIcon() {
@@ -149,6 +150,8 @@ function TwoFactorVerificationStep({
     onClose: () => void;
     onBack: () => void;
 }) {
+    const formId = useId();
+
     const [code, setCode] = useState<string>('');
     const pinInputContainerRef = useRef<HTMLDivElement>(null);
 
@@ -162,19 +165,16 @@ function TwoFactorVerificationStep({
 
     return (
         <Form
+            id={formId}
+            onError={(errors) => focusFirstFormError(formId, errors)}
             noValidate
             {...confirm.form()}
+            errorBag="confirmTwoFactorAuthentication"
             onSuccess={() => onClose()}
             resetOnError
             resetOnSuccess
         >
-            {({
-                processing,
-                errors,
-            }: {
-                processing: boolean;
-                errors?: { confirmTwoFactorAuthentication?: { code?: string } };
-            }) => (
+            {({ processing, errors, clearErrors }) => (
                 <>
                     <div
                         ref={pinInputContainerRef}
@@ -182,10 +182,7 @@ function TwoFactorVerificationStep({
                     >
                         <FieldGroup>
                             <Field
-                                data-invalid={
-                                    !!errors?.confirmTwoFactorAuthentication
-                                        ?.code
-                                }
+                                data-invalid={!!errors.code}
                                 className="items-center py-2"
                             >
                                 <InputOTP
@@ -193,22 +190,21 @@ function TwoFactorVerificationStep({
                                     name="code"
                                     aria-label="Authentication code"
                                     aria-describedby={
-                                        errors?.confirmTwoFactorAuthentication
-                                            ?.code
+                                        errors.code
                                             ? 'setup-code-error'
                                             : undefined
                                     }
                                     required
                                     minLength={OTP_MAX_LENGTH}
                                     maxLength={OTP_MAX_LENGTH}
-                                    onChange={setCode}
+                                    onChange={(value) => {
+                                        setCode(value);
+                                        clearErrors('code');
+                                    }}
                                     disabled={processing}
                                     pattern={REGEXP_ONLY_DIGITS}
                                     autoFocus
-                                    aria-invalid={
-                                        !!errors?.confirmTwoFactorAuthentication
-                                            ?.code
-                                    }
+                                    aria-invalid={!!errors.code}
                                 >
                                     <InputOTPGroup>
                                         {Array.from(
@@ -224,10 +220,7 @@ function TwoFactorVerificationStep({
                                 </InputOTP>
                                 <InputError
                                     id="setup-code-error"
-                                    message={
-                                        errors?.confirmTwoFactorAuthentication
-                                            ?.code
-                                    }
+                                    message={errors.code}
                                 />
                             </Field>
                         </FieldGroup>

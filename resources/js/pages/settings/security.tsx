@@ -1,5 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
-import { useRef } from 'react';
+import { useId } from 'react';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
@@ -13,6 +13,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { focusFirstFormError } from '@/lib/utils';
 import { edit } from '@/routes/security';
 /* @chisel-passkeys */
 import type { Props as ManagePasskeysProps } from '@/components/manage-passkeys';
@@ -30,8 +31,7 @@ type Props = {
     ManageTwoFactorProps /* @end-chisel-2fa */;
 
 export default function Security(props: Props) {
-    const passwordInput = useRef<HTMLInputElement>(null);
-    const currentPasswordInput = useRef<HTMLInputElement>(null);
+    const formId = useId();
 
     return (
         <>
@@ -47,29 +47,22 @@ export default function Security(props: Props) {
                 </CardHeader>
 
                 <Form
+                    id={formId}
+                    onError={(errors) => focusFirstFormError(formId, errors)}
                     noValidate
                     {...SecurityController.update.form()}
                     options={{
                         preserveScroll: true,
                     }}
                     resetOnError={[
-                        'password',
+                        'new_password',
                         'password_confirmation',
                         'current_password',
                     ]}
                     resetOnSuccess
-                    onError={(errors) => {
-                        if (errors.password) {
-                            passwordInput.current?.focus();
-                        }
-
-                        if (errors.current_password) {
-                            currentPasswordInput.current?.focus();
-                        }
-                    }}
                     className="flex flex-col gap-(--card-spacing)"
                 >
-                    {({ errors, processing }) => (
+                    {({ errors, processing, clearErrors }) => (
                         <>
                             <CardContent>
                                 <FieldGroup>
@@ -83,8 +76,10 @@ export default function Security(props: Props) {
                                         <PasswordInput
                                             id="current_password"
                                             required
-                                            ref={currentPasswordInput}
                                             name="current_password"
+                                            onChange={() =>
+                                                clearErrors('current_password')
+                                            }
                                             autoComplete="current-password"
                                             placeholder="Current password"
                                             aria-invalid={
@@ -92,41 +87,46 @@ export default function Security(props: Props) {
                                             }
                                             aria-describedby={
                                                 errors.current_password
-                                                    ? 'current_password-error'
+                                                    ? 'current_new_password-error'
                                                     : undefined
                                             }
                                         />
 
                                         <InputError
-                                            id="current_password-error"
+                                            id="current_new_password-error"
                                             message={errors.current_password}
                                         />
                                     </Field>
 
-                                    <Field data-invalid={!!errors.password}>
-                                        <FieldLabel htmlFor="password">
+                                    <Field data-invalid={!!errors.new_password}>
+                                        <FieldLabel htmlFor="new_password">
                                             New password
                                         </FieldLabel>
 
                                         <PasswordInput
-                                            id="password"
+                                            id="new_password"
                                             required
-                                            ref={passwordInput}
-                                            name="password"
+                                            name="new_password"
+                                            onChange={() =>
+                                                clearErrors(
+                                                    'new_password',
+                                                    'password_confirmation',
+                                                )
+                                            }
                                             autoComplete="new-password"
                                             placeholder="New password"
                                             passwordrules={props.passwordRules}
-                                            aria-invalid={!!errors.password}
+                                            aria-invalid={!!errors.new_password}
                                             aria-describedby={
-                                                errors.password
-                                                    ? 'password-error'
+                                                errors.new_password
+                                                    ? 'new_password-error'
                                                     : undefined
                                             }
                                         />
 
                                         <InputError
-                                            id="password-error"
-                                            message={errors.password}
+                                            id="new_password-error"
+                                            message={errors.new_password}
                                         />
                                     </Field>
 
@@ -143,6 +143,11 @@ export default function Security(props: Props) {
                                             id="password_confirmation"
                                             required
                                             name="password_confirmation"
+                                            onChange={() =>
+                                                clearErrors(
+                                                    'password_confirmation',
+                                                )
+                                            }
                                             autoComplete="new-password"
                                             placeholder="Confirm password"
                                             passwordrules={props.passwordRules}

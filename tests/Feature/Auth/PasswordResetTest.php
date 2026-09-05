@@ -5,7 +5,9 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
 use Laravel\Fortify\Features;
 use Tests\TestCase;
 
@@ -91,5 +93,21 @@ class PasswordResetTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('email');
+    }
+
+    public function test_password_mismatch_is_reported_on_confirmation(): void
+    {
+        $user = User::factory()->create();
+        $token = Password::createToken($user);
+
+        $this->post(route('password.update'), [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'new-password',
+            'password_confirmation' => 'different-password',
+        ])->assertSessionHasErrors('password_confirmation')
+            ->assertSessionDoesntHaveErrors('password');
+
+        $this->assertTrue(Hash::check('password', $user->refresh()->password));
     }
 }

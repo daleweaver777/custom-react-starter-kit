@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import { useId } from 'react';
 import AuthStatus from '@/components/auth-status';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 /* @chisel-registration */
+import { focusFirstFormError } from '@/lib/utils';
 import { register } from '@/routes';
 /* @end-chisel-registration */
 import { store } from '@/routes/login';
@@ -26,6 +28,8 @@ type Props = {
 };
 
 export default function Login({ status, canResetPassword }: Props) {
+    const formId = useId();
+
     return (
         <>
             <Head title="Log in" />
@@ -37,13 +41,15 @@ export default function Login({ status, canResetPassword }: Props) {
             {/* @end-chisel-passkeys */}
 
             <Form
+                id={formId}
+                onError={(errors) => focusFirstFormError(formId, errors)}
                 noValidate
                 {...store.form()}
                 resetOnError={['password']}
                 resetOnSuccess={['password']}
                 className="flex flex-col gap-6"
             >
-                {({ processing, errors }) => (
+                {({ processing, errors, clearErrors }) => (
                     <>
                         <FieldGroup>
                             <Field data-invalid={!!errors.email}>
@@ -54,6 +60,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                     id="email"
                                     type="email"
                                     name="email"
+                                    onChange={() => clearErrors('email')}
                                     required
                                     autoFocus
                                     autoComplete="email"
@@ -75,6 +82,7 @@ export default function Login({ status, canResetPassword }: Props) {
                                 <PasswordInput
                                     id="password"
                                     name="password"
+                                    onChange={() => clearErrors('password')}
                                     required
                                     autoComplete="current-password"
                                     placeholder="Password"

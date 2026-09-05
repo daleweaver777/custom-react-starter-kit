@@ -14,7 +14,17 @@ trait PasswordValidationRules
      */
     protected function passwordRules(): array
     {
-        return ['required', 'string', Password::default(), 'confirmed'];
+        return ['required', 'string', Password::default()];
+    }
+
+    /**
+     * Get the validation rules used to validate password confirmation.
+     *
+     * @return array<int, string>
+     */
+    protected function passwordConfirmationRules(string $passwordField = 'password'): array
+    {
+        return ['required', 'string', 'same:'.$passwordField];
     }
 
     /**

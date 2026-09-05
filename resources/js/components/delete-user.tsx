@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
+import { useId } from 'react';
 import { Trash2 } from 'lucide-react';
-import { useRef } from 'react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
@@ -26,9 +26,10 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { focusFirstFormError } from '@/lib/utils';
 
 export default function DeleteUser() {
-    const passwordInput = useRef<HTMLInputElement>(null);
+    const formId = useId();
 
     return (
         <Card className="text-destructive ring-destructive/25">
@@ -56,17 +57,25 @@ export default function DeleteUser() {
                     </AlertDialogTrigger>
                     <AlertDialogContent size="sm">
                         <Form
+                            id={formId}
+                            onError={(errors) =>
+                                focusFirstFormError(formId, errors)
+                            }
                             noValidate
                             {...ProfileController.destroy.form()}
                             options={{
                                 preserveScroll: true,
                             }}
-                            onError={() => passwordInput.current?.focus()}
                             resetOnError={['password']}
                             resetOnSuccess
                             className="grid gap-4"
                         >
-                            {({ resetAndClearErrors, processing, errors }) => (
+                            {({
+                                resetAndClearErrors,
+                                processing,
+                                errors,
+                                clearErrors,
+                            }) => (
                                 <>
                                     <AlertDialogHeader>
                                         <AlertDialogMedia className="bg-destructive/10 text-destructive">
@@ -97,8 +106,10 @@ export default function DeleteUser() {
                                             <PasswordInput
                                                 id="delete-password"
                                                 name="password"
+                                                onChange={() =>
+                                                    clearErrors('password')
+                                                }
                                                 required
-                                                ref={passwordInput}
                                                 placeholder="Password"
                                                 autoComplete="current-password"
                                                 aria-invalid={!!errors.password}
