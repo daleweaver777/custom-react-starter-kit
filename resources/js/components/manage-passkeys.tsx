@@ -1,9 +1,23 @@
 import { router } from '@inertiajs/react';
 import { KeyRound } from 'lucide-react';
 import { destroy } from '@/actions/Laravel/Passkeys/Http/Controllers/PasskeyRegistrationController';
-import Heading from '@/components/heading';
 import PasskeyItem from '@/components/passkey-item';
 import PasskeyRegistration from '@/components/passkey-register';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
 import type { Passkey } from '@/types/auth';
 
 export type Props = {
@@ -13,15 +27,17 @@ export type Props = {
 
 const EmptyState = () => {
     return (
-        <div className="p-8 text-center">
-            <div className="bg-muted mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl">
-                <KeyRound className="text-muted-foreground h-7 w-7" />
-            </div>
-            <p className="font-medium">No passkeys yet</p>
-            <p className="text-muted-foreground mt-1 text-sm">
-                Add a passkey to sign in without a password
-            </p>
-        </div>
+        <Empty className="rounded-lg border border-dashed">
+            <EmptyHeader>
+                <EmptyMedia variant="icon">
+                    <KeyRound />
+                </EmptyMedia>
+                <EmptyTitle>No passkeys yet</EmptyTitle>
+                <EmptyDescription>
+                    Add a passkey to sign in without a password
+                </EmptyDescription>
+            </EmptyHeader>
+        </Empty>
     );
 };
 
@@ -44,28 +60,33 @@ export default function ManagePasskeys(props: Props) {
     }
 
     return (
-        <div className="space-y-6">
-            <Heading
-                variant="small"
-                title="Passkeys"
-                description="Manage your passkeys for passwordless sign-in"
-            />
+        <Card>
+            <CardHeader>
+                <CardTitle>Passkeys</CardTitle>
+                <CardDescription>
+                    Manage your passkeys for passwordless sign-in
+                </CardDescription>
+            </CardHeader>
 
-            <div className="border-border overflow-hidden rounded-lg border">
+            <CardContent>
                 {passkeys.length > 0 ? (
-                    passkeys.map((passkey) => (
-                        <PasskeyItem
-                            key={passkey.id}
-                            passkey={passkey}
-                            onDelete={handleDelete}
-                        />
-                    ))
+                    <div className="border-border overflow-hidden rounded-lg border">
+                        {passkeys.map((passkey) => (
+                            <PasskeyItem
+                                key={passkey.id}
+                                passkey={passkey}
+                                onDelete={handleDelete}
+                            />
+                        ))}
+                    </div>
                 ) : (
                     <EmptyState />
                 )}
-            </div>
+            </CardContent>
 
-            <PasskeyRegistration onSuccess={handleRegisterSuccess} />
-        </div>
+            <CardFooter className="flex-col items-end gap-4">
+                <PasskeyRegistration onSuccess={handleRegisterSuccess} />
+            </CardFooter>
+        </Card>
     );
 }

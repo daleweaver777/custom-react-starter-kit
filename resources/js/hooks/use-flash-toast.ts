@@ -1,11 +1,11 @@
 import { router } from '@inertiajs/react';
 import { useEffect } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/toast';
 import type { FlashToast } from '@/types/ui';
 
 export function useFlashToast(): void {
     useEffect(() => {
-        return router.on('flash', (event) => {
+        const removeListener = router.on('flash', (event) => {
             const flash = (event as CustomEvent).detail?.flash;
             const data = flash?.toast as FlashToast | undefined;
 
@@ -13,7 +13,12 @@ export function useFlashToast(): void {
                 return;
             }
 
-            toast[data.type](data.message);
+            toast.add({
+                title: data.message,
+                type: data.type,
+            });
         });
+
+        return () => removeListener();
     }, []);
 }

@@ -1,7 +1,7 @@
 import { Form } from '@inertiajs/react';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { Check, Copy, ScanLine } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AlertError from '@/components/alert-error';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Field, FieldGroup } from '@/components/ui/field';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from '@/components/ui/input-group';
 import {
     InputOTP,
     InputOTPGroup,
@@ -95,7 +102,7 @@ function TwoFactorSetupStep({
                         </div>
                     </div>
 
-                    <div className="flex w-full space-x-5">
+                    <div className="flex w-full gap-5">
                         <Button className="w-full" onClick={onNextStep}>
                             {buttonText}
                         </Button>
@@ -108,30 +115,27 @@ function TwoFactorSetupStep({
                         </span>
                     </div>
 
-                    <div className="flex w-full space-x-2">
-                        <div className="border-border flex w-full items-stretch overflow-hidden rounded-xl border">
-                            {!manualSetupKey ? (
-                                <div className="bg-muted flex h-full w-full items-center justify-center p-3">
-                                    <Spinner />
-                                </div>
+                    <InputGroup>
+                        <InputGroupInput
+                            type="text"
+                            readOnly
+                            value={manualSetupKey ?? ''}
+                            aria-label="Two-factor authentication setup key"
+                        />
+                        <InputGroupAddon align="inline-end">
+                            {manualSetupKey ? (
+                                <InputGroupButton
+                                    size="icon-xs"
+                                    onClick={() => copy(manualSetupKey)}
+                                    aria-label="Copy setup key"
+                                >
+                                    <IconComponent />
+                                </InputGroupButton>
                             ) : (
-                                <>
-                                    <input
-                                        type="text"
-                                        readOnly
-                                        value={manualSetupKey}
-                                        className="bg-background text-foreground h-full w-full p-3 outline-none"
-                                    />
-                                    <button
-                                        onClick={() => copy(manualSetupKey)}
-                                        className="border-border hover:bg-muted border-l px-3"
-                                    >
-                                        <IconComponent className="w-4" />
-                                    </button>
-                                </>
+                                <Spinner />
                             )}
-                        </div>
-                    </div>
+                        </InputGroupAddon>
+                    </InputGroup>
                 </>
             )}
         </>
@@ -149,9 +153,11 @@ function TwoFactorVerificationStep({
     const pinInputContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        setTimeout(() => {
+        const focusTimer = window.setTimeout(() => {
             pinInputContainerRef.current?.querySelector('input')?.focus();
         }, 0);
+
+        return () => window.clearTimeout(focusTimer);
     }, []);
 
     return (
@@ -171,38 +177,61 @@ function TwoFactorVerificationStep({
                 <>
                     <div
                         ref={pinInputContainerRef}
-                        className="relative w-full space-y-3"
+                        className="relative flex w-full flex-col gap-3"
                     >
-                        <div className="flex w-full flex-col items-center space-y-3 py-2">
-                            <InputOTP
-                                id="otp"
-                                name="code"
-                                maxLength={OTP_MAX_LENGTH}
-                                onChange={setCode}
-                                disabled={processing}
-                                pattern={REGEXP_ONLY_DIGITS}
-                                autoFocus
-                            >
-                                <InputOTPGroup>
-                                    {Array.from(
-                                        { length: OTP_MAX_LENGTH },
-                                        (_, index) => (
-                                            <InputOTPSlot
-                                                key={index}
-                                                index={index}
-                                            />
-                                        ),
-                                    )}
-                                </InputOTPGroup>
-                            </InputOTP>
-                            <InputError
-                                message={
-                                    errors?.confirmTwoFactorAuthentication?.code
+                        <FieldGroup>
+                            <Field
+                                data-invalid={
+                                    !!errors?.confirmTwoFactorAuthentication
+                                        ?.code
                                 }
-                            />
-                        </div>
+                                className="items-center py-2"
+                            >
+                                <InputOTP
+                                    id="otp"
+                                    name="code"
+                                    aria-label="Authentication code"
+                                    aria-describedby={
+                                        errors?.confirmTwoFactorAuthentication
+                                            ?.code
+                                            ? 'setup-code-error'
+                                            : undefined
+                                    }
+                                    required
+                                    minLength={OTP_MAX_LENGTH}
+                                    maxLength={OTP_MAX_LENGTH}
+                                    onChange={setCode}
+                                    disabled={processing}
+                                    pattern={REGEXP_ONLY_DIGITS}
+                                    autoFocus
+                                    aria-invalid={
+                                        !!errors?.confirmTwoFactorAuthentication
+                                            ?.code
+                                    }
+                                >
+                                    <InputOTPGroup>
+                                        {Array.from(
+                                            { length: OTP_MAX_LENGTH },
+                                            (_, index) => (
+                                                <InputOTPSlot
+                                                    key={index}
+                                                    index={index}
+                                                />
+                                            ),
+                                        )}
+                                    </InputOTPGroup>
+                                </InputOTP>
+                                <InputError
+                                    id="setup-code-error"
+                                    message={
+                                        errors?.confirmTwoFactorAuthentication
+                                            ?.code
+                                    }
+                                />
+                            </Field>
+                        </FieldGroup>
 
-                        <div className="flex w-full space-x-5">
+                        <div className="flex w-full gap-5">
                             <Button
                                 type="button"
                                 variant="outline"
@@ -255,51 +284,48 @@ export default function TwoFactorSetupModal({
     const [showVerificationStep, setShowVerificationStep] =
         useState<boolean>(false);
 
-    const modalConfig = useMemo<{
+    let modalConfig: {
         title: string;
         description: string;
         buttonText: string;
-    }>(() => {
-        if (twoFactorEnabled) {
-            return {
-                title: 'Two-factor authentication enabled',
-                description:
-                    'Two-factor authentication is now enabled. Scan the QR code or enter the setup key in your authenticator app.',
-                buttonText: 'Close',
-            };
-        }
+    };
 
-        if (showVerificationStep) {
-            return {
-                title: 'Verify authentication code',
-                description:
-                    'Enter the 6-digit code from your authenticator app',
-                buttonText: 'Continue',
-            };
-        }
-
-        return {
+    if (twoFactorEnabled) {
+        modalConfig = {
+            title: 'Two-factor authentication enabled',
+            description:
+                'Two-factor authentication is now enabled. Scan the QR code or enter the setup key in your authenticator app.',
+            buttonText: 'Close',
+        };
+    } else if (showVerificationStep) {
+        modalConfig = {
+            title: 'Verify authentication code',
+            description: 'Enter the 6-digit code from your authenticator app',
+            buttonText: 'Continue',
+        };
+    } else {
+        modalConfig = {
             title: 'Enable two-factor authentication',
             description:
                 'To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app',
             buttonText: 'Continue',
         };
-    }, [twoFactorEnabled, showVerificationStep]);
+    }
 
-    const resetModalState = useCallback(() => {
+    const resetModalState = () => {
         if (twoFactorEnabled) {
             clearSetupData();
         }
 
         setShowVerificationStep(false);
-    }, [clearSetupData, twoFactorEnabled]);
+    };
 
-    const handleClose = useCallback(() => {
+    const handleClose = () => {
         resetModalState();
         onClose();
-    }, [onClose, resetModalState]);
+    };
 
-    const handleModalNextStep = useCallback(() => {
+    const handleModalNextStep = () => {
         if (requiresConfirmation) {
             setShowVerificationStep(true);
 
@@ -308,7 +334,7 @@ export default function TwoFactorSetupModal({
 
         clearSetupData();
         handleClose();
-    }, [requiresConfirmation, clearSetupData, handleClose]);
+    };
 
     const fetchSetupDataRef = useRef(fetchSetupData);
 
@@ -333,7 +359,7 @@ export default function TwoFactorSetupModal({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex flex-col items-center space-y-5">
+                <div className="flex flex-col items-center gap-5">
                     {showVerificationStep ? (
                         <TwoFactorVerificationStep
                             onClose={handleClose}

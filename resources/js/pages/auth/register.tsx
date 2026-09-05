@@ -1,11 +1,14 @@
 import { Form, Head } from '@inertiajs/react';
-import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 
@@ -19,93 +22,117 @@ export default function Register({ passwordRules }: Props) {
             <Head title="Register" />
             <Form
                 {...store.form()}
+                resetOnError={['password', 'password_confirmation']}
                 resetOnSuccess={['password', 'password_confirmation']}
-                disableWhileProcessing
                 className="flex flex-col gap-6"
             >
                 {({ processing, errors }) => (
                     <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
+                        <FieldGroup>
+                            <Field data-invalid={!!errors.name}>
+                                <FieldLabel htmlFor="name">Name</FieldLabel>
                                 <Input
                                     id="name"
                                     type="text"
                                     required
                                     autoFocus
-                                    tabIndex={1}
                                     autoComplete="name"
                                     name="name"
                                     placeholder="Full name"
+                                    aria-invalid={!!errors.name}
+                                    aria-describedby={
+                                        errors.name ? 'name-error' : undefined
+                                    }
                                 />
-                                <InputError
-                                    message={errors.name}
-                                    className="mt-2"
-                                />
-                            </div>
+                                <FieldError id="name-error">
+                                    {errors.name}
+                                </FieldError>
+                            </Field>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                            <Field data-invalid={!!errors.email}>
+                                <FieldLabel htmlFor="email">
+                                    Email address
+                                </FieldLabel>
                                 <Input
                                     id="email"
                                     type="email"
                                     required
-                                    tabIndex={2}
                                     autoComplete="email"
                                     name="email"
                                     placeholder="email@example.com"
+                                    aria-invalid={!!errors.email}
+                                    aria-describedby={
+                                        errors.email ? 'email-error' : undefined
+                                    }
                                 />
-                                <InputError message={errors.email} />
-                            </div>
+                                <FieldError id="email-error">
+                                    {errors.email}
+                                </FieldError>
+                            </Field>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="password">Password</Label>
+                            <Field data-invalid={!!errors.password}>
+                                <FieldLabel htmlFor="password">
+                                    Password
+                                </FieldLabel>
                                 <PasswordInput
                                     id="password"
                                     required
-                                    tabIndex={3}
                                     autoComplete="new-password"
                                     name="password"
                                     placeholder="Password"
                                     passwordrules={passwordRules}
+                                    aria-invalid={!!errors.password}
+                                    aria-describedby={
+                                        errors.password
+                                            ? 'password-error'
+                                            : undefined
+                                    }
                                 />
-                                <InputError message={errors.password} />
-                            </div>
+                                <FieldError id="password-error">
+                                    {errors.password}
+                                </FieldError>
+                            </Field>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="password_confirmation">
+                            <Field
+                                data-invalid={!!errors.password_confirmation}
+                            >
+                                <FieldLabel htmlFor="password_confirmation">
                                     Confirm password
-                                </Label>
+                                </FieldLabel>
                                 <PasswordInput
                                     id="password_confirmation"
                                     required
-                                    tabIndex={4}
                                     autoComplete="new-password"
                                     name="password_confirmation"
                                     placeholder="Confirm password"
                                     passwordrules={passwordRules}
+                                    aria-invalid={
+                                        !!errors.password_confirmation
+                                    }
+                                    aria-describedby={
+                                        errors.password_confirmation
+                                            ? 'password-confirmation-error'
+                                            : undefined
+                                    }
                                 />
-                                <InputError
-                                    message={errors.password_confirmation}
-                                />
-                            </div>
+                                <FieldError id="password-confirmation-error">
+                                    {errors.password_confirmation}
+                                </FieldError>
+                            </Field>
 
                             <Button
                                 type="submit"
-                                className="mt-2 w-full"
-                                tabIndex={5}
+                                className="w-full"
+                                disabled={processing}
                                 data-test="register-user-button"
                             >
-                                {processing && <Spinner />}
                                 Create account
                             </Button>
-                        </div>
+                        </FieldGroup>
 
                         <div className="text-muted-foreground text-center text-sm">
                             Already have an account?{' '}
-                            <TextLink href={login()} tabIndex={6}>
-                                Log in
-                            </TextLink>
+                            <TextLink href={login()}>Log in</TextLink>
                         </div>
                     </>
                 )}

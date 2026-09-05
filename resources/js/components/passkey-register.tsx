@@ -1,9 +1,16 @@
 import { usePasskeyRegister } from '@laravel/passkeys/react';
+import { Info } from 'lucide-react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import {
+    Field,
+    FieldDescription,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 type Props = {
     onSuccess: () => void;
@@ -48,7 +55,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
             return;
         }
 
-        await register(name);
+        await register(name.trim());
     };
 
     const handleCancel = () => {
@@ -58,9 +65,12 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
 
     if (!isSupported) {
         return (
-            <div className="text-muted-foreground text-sm">
-                Passkeys are not supported in this browser.
-            </div>
+            <Alert className="w-full">
+                <Info />
+                <AlertDescription>
+                    Passkeys are not supported in this browser.
+                </AlertDescription>
+            </Alert>
         );
     }
 
@@ -73,31 +83,40 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
     }
 
     return (
-        <form
-            onSubmit={handleSubmit}
-            className="border-border bg-muted/50 space-y-4 rounded-lg border p-4"
-        >
-            <div className="grid gap-2">
-                <Label htmlFor="passkey-name">Passkey name</Label>
-                <Input
-                    id="passkey-name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g., MacBook Pro, iPhone"
-                    className="border-foreground/20 mt-1 block w-full"
-                    autoFocus
-                />
-                <p className="text-muted-foreground text-xs">
-                    A name helps you identify this passkey later.
-                </p>
-            </div>
-
-            {error && <InputError message={error} />}
+        <form onSubmit={handleSubmit} className="flex w-full flex-col gap-4">
+            <FieldGroup>
+                <Field data-invalid={!!error}>
+                    <FieldLabel htmlFor="passkey-name">Passkey name</FieldLabel>
+                    <Input
+                        id="passkey-name"
+                        type="text"
+                        required
+                        maxLength={255}
+                        aria-describedby={
+                            error
+                                ? 'passkey-name-description passkey-name-error'
+                                : 'passkey-name-description'
+                        }
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g., MacBook Pro, iPhone"
+                        className="bg-background"
+                        autoFocus
+                        aria-invalid={!!error}
+                    />
+                    <FieldDescription id="passkey-name-description">
+                        A name helps you identify this passkey later.
+                    </FieldDescription>
+                    <InputError
+                        id="passkey-name-error"
+                        message={error ?? undefined}
+                    />
+                </Field>
+            </FieldGroup>
 
             <div className="flex gap-2">
                 <Button type="submit" disabled={isLoading || !name.trim()}>
-                    {isLoading ? 'Registering...' : 'Register passkey'}
+                    Register passkey
                 </Button>
                 <Button type="button" variant="ghost" onClick={handleCancel}>
                     Cancel

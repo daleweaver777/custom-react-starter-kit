@@ -1,17 +1,14 @@
-import type { HTMLAttributes } from 'react';
-import { cn } from '@/lib/utils';
+import type { ComponentProps } from 'react';
+import { FieldError } from '@/components/ui/field';
 
 export default function InputError({
     message,
     className = '',
     ...props
-}: HTMLAttributes<HTMLParagraphElement> & { message?: string }) {
+}: Omit<ComponentProps<typeof FieldError>, 'children'> & { message?: string }) {
     return message ? (
-        <p
-            {...props}
-            className={cn('text-sm text-red-600 dark:text-red-400', className)}
-        >
+        <FieldError {...props} className={className}>
             {message}
-        </p>
+        </FieldError>
     ) : null;
 }
