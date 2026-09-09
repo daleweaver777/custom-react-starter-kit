@@ -121,11 +121,11 @@ This source repository follows upstream's packaging convention: do not commit ge
 
 ## Installer Behavior and Testing
 
-The Laravel installer uses `extra.installer.post-create-project` in `composer.json` to run `install:features`. The same command also appears in Composer's `post-update-cmd` for non-deferred dependency setup. These are distinct from Composer's own `post-create-project-cmd`, which generates the application key, creates the SQLite file if absent, and runs migrations.
+The Laravel installer uses `extra.laravel.installer.post-create-project` in `composer.json` to run `install:features`. The same command also appears in Composer's `post-update-cmd` for non-deferred dependency setup. These are distinct from Composer's own `post-create-project-cmd`, which generates the application key and creates the SQLite file if absent. Its migration step waits while `chisel.php` is present: Chisel runs initial migrations only after removing unselected feature migrations, so the generated database matches the selected features. After trimming, ordinary Composer project creation can safely run its migration step again.
 
 Feature selection can retain email verification, registration, two-factor authentication, passkeys, and password confirmation. The installer trims unselected features, removes retained-feature markers, formats PHP, and regenerates Wayfinder helpers. Unless `LARAVEL_INSTALLER_NO_NODE=1`, it also installs JavaScript dependencies, removes unused feature packages, runs the frontend fixer, and builds assets.
 
-After Chisel's transformations and formatting succeed, cleanup removes `AGENTS.md`, `README-maintainer.md`, the feature-install command, and both Chisel scripts. `README.md` remains. The frontend build follows this cleanup when Node steps are enabled.
+After Chisel's transformations, formatting, and initial migrations succeed, cleanup removes `AGENTS.md`, `README-maintainer.md`, the maintainer-only `InstallerMigrationHookTest`, the feature-install command, and both Chisel scripts. `README.md` remains. The frontend build follows this cleanup when Node steps are enabled.
 
 In separate disposable copies with dependencies available, test these selections:
 

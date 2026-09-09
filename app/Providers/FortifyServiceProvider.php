@@ -9,6 +9,8 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Routing\RouteCollection;
+use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -35,6 +37,36 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
+        $this->configurePasswordConfirmationRoutes();
+    }
+
+    /**
+     * Remove Fortify's unconditional confirmation routes when the feature is disabled.
+     */
+    private function configurePasswordConfirmationRoutes(): void
+    {
+        if (config('fortify.password_confirmation', true) || $this->app->routesAreCached()) {
+            return;
+        }
+
+        $this->app->booted(function (): void {
+            $router = $this->app->make(Router::class);
+            $routes = new RouteCollection;
+
+            foreach ($router->getRoutes()->getRoutes() as $route) {
+                if (! in_array($route->getName(), [
+                    'password.confirm',
+                    'password.confirm.store',
+                    'password.confirmation',
+                ], true)) {
+                    $routes->add($route);
+                }
+            }
+
+            $routes->refreshNameLookups();
+            $routes->refreshActionLookups();
+            $router->setRoutes($routes);
+        });
     }
 
     /**

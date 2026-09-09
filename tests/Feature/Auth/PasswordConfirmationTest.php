@@ -30,4 +30,20 @@ class PasswordConfirmationTest extends TestCase
 
         $response->assertRedirect(route('login'));
     }
+
+    public function test_password_can_be_confirmed_and_its_status_is_available(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->getJson(route('password.confirmation'))
+            ->assertOk()
+            ->assertJson(['confirmed' => false]);
+
+        $this->postJson(route('password.confirm.store'), ['password' => 'password'])
+            ->assertCreated();
+
+        $this->getJson(route('password.confirmation'))
+            ->assertOk()
+            ->assertJson(['confirmed' => true]);
+    }
 }

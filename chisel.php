@@ -268,6 +268,7 @@ return Chisel::script(__DIR__)
         },
         else: function (Chisel $c) use ($paths) {
             $c->file('config/fortify.php')
+                ->replace("'password_confirmation' => true,", "'password_confirmation' => false,")
                 ->replace("'confirmPassword' => true,", "'confirmPassword' => false,");
 
             $c->files(
@@ -293,9 +294,18 @@ return Chisel::script(__DIR__)
             $c->npm()->run('check:fix');
         }
 
+        // Composer defers the initial migrations until optional migrations have
+        // been trimmed. Use a fresh process to load the generated application.
+        if (! file_exists(__DIR__.'/database/database.sqlite')) {
+            touch(__DIR__.'/database/database.sqlite');
+        }
+
+        chiselRun(['php', 'artisan', 'migrate', '--graceful', '--ansi', '--no-interaction'], 'Migrate Selected Features');
+
         $c->files(
             'AGENTS.md',
             'README-maintainer.md',
+            'tests/Unit/InstallerMigrationHookTest.php',
             'app/Console/Commands/InstallFeaturesCommand.php',
             'chisel.php',
             'chisel-paths.php',

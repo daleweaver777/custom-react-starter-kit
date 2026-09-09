@@ -88,7 +88,7 @@
         "post-create-project-cmd": [
             "@php artisan key:generate --ansi",
             "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
-            "@php artisan migrate --graceful --ansi"
+            "@php -r \"if (! file_exists('chisel.php')) { passthru(escapeshellarg(PHP_BINARY).' artisan migrate --graceful --ansi', $status); exit($status); }\""
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"

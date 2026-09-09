@@ -137,6 +137,9 @@ return [
 
     'views' => true,
 
+    // Chisel disables these routes when password confirmation is not selected.
+    'password_confirmation' => true,
+
     /* @chisel-passkeys */
     /*
     |--------------------------------------------------------------------------
