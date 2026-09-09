@@ -2,6 +2,8 @@
 
 These instructions govern maintenance of this starter-kit source repository, not applications generated from it.
 
+The human-facing maintenance, upstream-sync, and publishing guide is `README-maintainer.md`. Keep `README.md` focused on installed applications. Include it in release archives and preserve it during Chisel cleanup; Chisel removes `AGENTS.md` and `README-maintainer.md` from generated applications.
+
 This repository tracks `https://github.com/laravel/react-starter-kit.git` as the `upstream` remote. The customization branch is `main`; keep completed custom work on `main`. The user's own hosted repository should be configured as `origin`.
 
 ## Non-negotiable invariants
@@ -73,7 +75,7 @@ npx shadcn@latest info --json
 rg -n 'radix-ui|@radix-ui|\basChild\b' resources/js package.json
 git diff upstream/main -- chisel.php chisel-paths.php
 git diff upstream/main -- resources/js | rg '@(end-)?chisel-'
-composer install
+LARAVEL_INSTALLER_DEFER_HOOKS=1 composer install
 php artisan wayfinder:generate --with-form --no-interaction
 npm install --no-package-lock
 npm run check
@@ -83,5 +85,7 @@ composer run test
 ```
 
 The Radix scan must have no output. Review the Chisel diffs rather than assuming any output is wrong: upstream may intentionally evolve its feature boundaries. When validating Chisel itself, use disposable copies and test at least all features retained, no optional features retained, and one mixed selection; Chisel deletes its own script after a successful run.
+
+When installing or updating Composer dependencies in this source checkout, set `LARAVEL_INSTALLER_DEFER_HOOKS=1` to prevent feature trimming. Do not run `composer run setup` or pass explicit `install:features --answers` here; explicit answers bypass deferral. Use disposable copies for installation tests.
 
 After dependency-based checks, remove untracked lockfiles and generated Wayfinder artifacts so the starter-kit source continues to match upstream's packaging conventions.

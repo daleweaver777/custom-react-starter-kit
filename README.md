@@ -1,78 +1,98 @@
-# Custom Laravel + React Starter Kit
+# Laravel + React Application
 
-## Introduction
+A Laravel 13 application with React 19, TypeScript, Inertia 3, and Tailwind CSS 4. The interface uses shadcn/ui components built on Base UI, the Nova style, and a bundled Inter font.
 
-This repository is a customization layer on top of Laravel's official [React starter kit](https://github.com/laravel/react-starter-kit). It keeps Laravel's backend, authentication options, installer hooks, and Chisel feature trimming while replacing the frontend component base with [Base UI](https://base-ui.com) and the shadcn/ui Nova preset.
+## Requirements
 
-Inertia allows you to build modern, single-page React applications using classic server-side routing and controllers. This lets you enjoy the frontend power of React combined with the incredible backend productivity of Laravel and lightning-fast Vite compilation.
+- PHP 8.3 or later in the PHP 8 series, with the extensions required by Composer and your database driver.
+- Composer 2.
+- Node.js 22.18 or later in the Node 22 series, or Node.js 24.11 or later, with npm. These versions satisfy the project's Vite and Vite Plus requirements.
+- SQLite for the default database, or a configured MySQL, MariaDB, or PostgreSQL database.
 
-This starter kit uses React 19, TypeScript, Tailwind CSS 4, Inertia, Base UI, and [shadcn/ui](https://ui.shadcn.com). Its shadcn configuration resolves to `base-nova` and the small-radius preset `b37ZhrNTs`.
+## Getting Started
 
-## Installing the Starter Kit
+Run commands from the application directory.
 
-Publish the repository as a Composer project on Packagist after changing the `name` field in `composer.json` to your own `<vendor>/<package>` name. It can then be installed through the Laravel installer:
+If the Laravel installer has already installed dependencies and configured the database, start development with:
 
 ```bash
-laravel new my-app --using=<vendor>/<package>
+composer run dev
 ```
 
-The Laravel installer runs the starter kit's `post-create-project` hook, which invokes Chisel. Chisel asks which authentication features to retain, trims marked sections and optional files, regenerates Wayfinder resources, and runs the frontend fixer. Do not remove `chisel.php`, `chisel-paths.php`, the Composer installer metadata, or any `@chisel-*` / `@end-chisel-*` comments from this source repository.
+Open the address printed by the server, normally [http://localhost:8000](http://localhost:8000).
 
-## Syncing Laravel Upstream Manually
-
-The official Laravel repository should be configured as `upstream`; your repository should be `origin`. Keep completed custom work on `main`, then merge Laravel updates so Git performs a three-way merge and reports conflicts instead of silently replacing local UI work.
-
-One-time setup after cloning your own repository:
+For a fresh clone of an installed application with a new local environment:
 
 ```bash
-git remote add upstream https://github.com/laravel/react-starter-kit.git
-git fetch upstream
-git config rerere.enabled true
-git config rerere.autoupdate true
+composer run setup
+composer run dev
 ```
 
-For each sync:
+`setup` installs PHP and JavaScript dependencies, creates `.env` if it is missing, generates an application key, runs database migrations, and builds frontend assets. Configure `.env` before running it if you want a database other than the default SQLite database. This command generates a new `APP_KEY` each time, so use the individual dependency, migration, and build commands when updating an existing environment.
+
+## Configuration
+
+The starting configuration is in `.env.example`:
+
+- `APP_NAME` and `APP_URL` identify the application and its local URL.
+- `DB_CONNECTION=sqlite` uses `database/database.sqlite` by default. Configure the database connection variables when using another database.
+- Sessions, cache, and queues use the database by default, so run migrations before using them.
+- `MAIL_MAILER=log` writes mail to the application log instead of delivering it. Configure a mail provider to send password-reset or verification emails.
+
+Authentication includes login and password reset. Registration, email verification, two-factor authentication, passkeys, and password confirmation depend on the options retained during installation.
+
+## Development
+
+`composer run dev` starts the Laravel development server, queue listener, and frontend development server. It also starts the Pail log viewer when the PHP `pcntl` extension is available.
+
+If Laravel is already served by a local tool such as Herd, you can run only the frontend development server:
 
 ```bash
-git switch main
-git status --short
-git fetch upstream
-git branch backup/pre-upstream-sync-YYYY-MM-DD
-git merge --no-ff upstream/main
+npm run dev
 ```
 
-Start only from a clean working tree. If the merge conflicts, inspect every conflict with `git diff --name-only --diff-filter=U`. In `resources/js`, retain Laravel's functional changes while keeping Base UI APIs and Nova styles. Never resolve the whole directory with `--ours`, configure an `ours` merge driver, or overwrite all shadcn components; those approaches hide upstream fixes.
-
-Treat `resources/css/app.css` as a customized shadcn theme file during merges. Preserve the Laravel `@source` directives, the single Tailwind/shadcn/Inter import set, and the Nova preset's semantic tokens. Inter is bundled through `@fontsource-variable/inter`, so do not also restore Laravel's upstream Instrument Sans Bunny Fonts configuration in `vite.config.ts`; doing so downloads and emits two font families.
-
-When Laravel adds or changes a shadcn component, preview registry changes with `npx shadcn@latest add <component> --dry-run` and `--diff`, then merge the new Base UI implementation into the local wrapper. Adapt consumers to the matching Base UI APIs.
-
-This customization uses shadcn's Base UI `toast` component for Laravel flash notifications. If upstream changes its notification integration, retain the `FlashToaster` bridge and do not restore Sonner, which is intended for Radix and React Aria shadcn projects.
-
-Before completing the merge, verify the project:
+Build production frontend assets with:
 
 ```bash
-npx shadcn@latest info --json
-rg -n 'radix-ui|@radix-ui|\basChild\b' resources/js package.json
-git diff upstream/main -- chisel.php chisel-paths.php
-git diff upstream/main -- resources/js | rg '@(end-)?chisel-'
-composer install
-php artisan wayfinder:generate --with-form --no-interaction
-npm install --no-package-lock
-npm run check
-npm run types:check
 npm run build
-composer run test
 ```
 
-The first scan should return no Radix dependencies or legacy `asChild` consumers. `shadcn info` must report `base: "base"`, `style: "base-nova"`, and preset `b37ZhrNTs`. Review every Chisel diff deliberately: upstream may add legitimate markers, but existing paired markers must never disappear accidentally. This source intentionally follows upstream by not committing generated Composer or npm lockfiles.
+The Wayfinder plugin generates TypeScript route and controller helpers during frontend development and builds. To generate them explicitly, including before a standalone TypeScript check on a fresh checkout:
 
-For the agent-specific version of this workflow, see [AGENTS.md](AGENTS.md).
+```bash
+php artisan wayfinder:generate --with-form --no-interaction
+```
 
-## Focus Styling and Color Themes
+## Project Structure
 
-The customized UI uses compact, solid 2px focus outlines inspired by the [Tailwind Plus form examples](https://tailwindcss.com/plus/ui-blocks/application-ui/forms/form-layouts). Shared controls use consistent offsets, including inward outlines for most controls and a small gap around solid primary buttons and checkboxes.
+| Location                   | Purpose                                                 |
+| -------------------------- | ------------------------------------------------------- |
+| `app/`                     | Controllers, requests, models, and application services |
+| `routes/`                  | Laravel routes                                          |
+| `resources/js/pages/`      | Inertia page components                                 |
+| `resources/js/components/` | Shared application and UI components                    |
+| `resources/js/layouts/`    | Page layouts                                            |
+| `resources/css/app.css`    | Tailwind setup, theme tokens, and shared focus styles   |
+| `tests/`                   | PHP unit and feature tests                              |
 
-Focus colors follow the semantic theme tokens in `resources/css/app.css`. The default indigo theme uses indigo-600 in light mode and indigo-500 in dark mode, with white primary text and matching focus colors. Focus geometry stays consistent when changing color themes.
+## Interface and Notifications
 
-For component-specific focus classes, theme maintenance rules, and accessibility verification, see [Focus Styles for New UI Components in AGENTS.md](AGENTS.md#focus-styles-for-new-ui-components).
+Edit the semantic color tokens in `resources/css/app.css` to customize the light and dark themes. Shared controls use solid 2px focus outlines. Component implementations live in `resources/js/components/ui/`.
+
+Application confirmations use the Laravel flash-to-toast integration. Inertia request failures appear as persistent alerts at the top of the page; expired-session alerts include a Refresh action. Field validation errors remain beside their inputs. Timed notifications display a countdown bar that pauses during hover or keyboard focus.
+
+## Checks
+
+With dependencies installed and Wayfinder helpers generated:
+
+| Command                    | Purpose                                                                          |
+| -------------------------- | -------------------------------------------------------------------------------- |
+| `npm run check`            | Check frontend formatting and lint rules                                         |
+| `npm run check:fix`        | Apply frontend formatting and lint fixes                                         |
+| `npm run types:check`      | Check TypeScript types                                                           |
+| `composer run lint`        | Format PHP with Pint                                                             |
+| `composer run types:check` | Run PHPStan with Larastan                                                        |
+| `composer run test`        | Clear the configuration cache, check PHP formatting and types, and run PHP tests |
+| `composer run ci:check`    | Run frontend checks, TypeScript checks, and the PHP check/test suite             |
+
+The default PHP test configuration uses an in-memory SQLite database. Run `npm run build` separately to verify the production frontend build.

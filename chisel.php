@@ -295,6 +295,7 @@ return Chisel::script(__DIR__)
 
         $c->files(
             'AGENTS.md',
+            'README-maintainer.md',
             'app/Console/Commands/InstallFeaturesCommand.php',
             'chisel.php',
             'chisel-paths.php',
