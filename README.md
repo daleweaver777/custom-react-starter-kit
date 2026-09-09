@@ -45,7 +45,7 @@ Start only from a clean working tree. If the merge conflicts, inspect every conf
 
 Treat `resources/css/app.css` as a customized shadcn theme file during merges. Preserve the Laravel `@source` directives, the single Tailwind/shadcn/Inter import set, and the Nova preset's semantic tokens. Inter is bundled through `@fontsource-variable/inter`, so do not also restore Laravel's upstream Instrument Sans Bunny Fonts configuration in `vite.config.ts`; doing so downloads and emits two font families.
 
-When Laravel adds or changes a shadcn component, use the official `shadcn` and `migrate-radix-to-base` skills. Preview registry changes with `npx shadcn@latest add <component> --dry-run` and `--diff`, then merge the new Base UI implementation into the local wrapper. Migrate consumers from Radix `asChild` to Base UI `render` and record behavior differences in `.migration/<component>.md`.
+When Laravel adds or changes a shadcn component, preview registry changes with `npx shadcn@latest add <component> --dry-run` and `--diff`, then merge the new Base UI implementation into the local wrapper. Adapt consumers to the matching Base UI APIs.
 
 This customization uses shadcn's Base UI `toast` component for Laravel flash notifications. If upstream changes its notification integration, retain the `FlashToaster` bridge and do not restore Sonner, which is intended for Radix and React Aria shadcn projects.
 
