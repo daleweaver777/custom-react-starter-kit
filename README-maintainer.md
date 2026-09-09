@@ -139,12 +139,12 @@ Run one command per copy; successful trimming deletes the installer itself. Veri
 
 ## Publishing
 
-The Composer package name is `daleweaver777/react-starter-kit`. To publish it, host the repository as `origin` and register the package on Packagist.
+The Composer package name is `daleweaver777/custom-react-starter-kit`. To publish it, host the repository as `origin` and register the package on Packagist.
 
 After your package and an installable release are available, users with the Laravel installer can create an app using:
 
 ```bash
-laravel new my-app --using=daleweaver777/react-starter-kit
+laravel new my-app --using=daleweaver777/custom-react-starter-kit
 ```
 
 Keep `type: "project"`, Composer hooks, and Laravel installer metadata intact. Verify a fresh installation from the published package before announcing a release.

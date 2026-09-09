@@ -1,6 +1,6 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "daleweaver777/react-starter-kit",
+    "name": "daleweaver777/custom-react-starter-kit",
     "type": "project",
     "description": "A custom skeleton application for the Laravel framework.",
     "keywords": [
