@@ -1,17 +1,26 @@
 import { router } from '@inertiajs/react';
-import { useEffect } from 'react';
-import { toast } from '@/components/ui/toast';
+import { useEffect, useState } from 'react';
 
-export function useRequestErrors(): void {
+type RequestError = {
+    id: number;
+    title: string;
+    description: string;
+    action?: { label: string; onClick: () => void };
+};
+
+export function useRequestErrors() {
+    const [error, setError] = useState<RequestError | null>(null);
+
     useEffect(() => {
+        let nextId = 0;
+        const showError = (error: Omit<RequestError, 'id'>) => {
+            setError({ ...error, id: ++nextId });
+        };
+
         const removeNetworkListener = router.on('networkError', () => {
-            toast.add({
-                id: 'request-error',
-                type: 'error',
+            showError({
                 title: 'Connection problem',
                 description: 'Check your internet connection and try again.',
-                timeout: 5000,
-                actionProps: undefined,
             });
 
             return false;
@@ -25,22 +34,17 @@ export function useRequestErrors(): void {
             }
 
             if (status === 419) {
-                toast.add({
-                    id: 'request-error',
-                    type: 'error',
+                showError({
                     title: 'Session expired',
                     description:
                         'Refresh the page before trying again. Unsaved changes will be lost.',
-                    timeout: 0,
-                    actionProps: {
-                        children: 'Refresh',
+                    action: {
+                        label: 'Refresh',
                         onClick: () => window.location.reload(),
                     },
                 });
             } else {
-                toast.add({
-                    id: 'request-error',
-                    type: 'error',
+                showError({
                     title:
                         status === 429
                             ? 'Too many requests'
@@ -49,8 +53,6 @@ export function useRequestErrors(): void {
                         status === 429
                             ? 'Please wait a moment before trying again.'
                             : 'Unable to complete your request. Please try again.',
-                    timeout: 5000,
-                    actionProps: undefined,
                 });
             }
 
@@ -62,4 +64,6 @@ export function useRequestErrors(): void {
             removeHttpListener();
         };
     }, []);
+
+    return { error, dismiss: () => setError(null) };
 }

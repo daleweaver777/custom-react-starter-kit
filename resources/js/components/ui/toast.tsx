@@ -3,6 +3,7 @@ import { Toast as ToastPrimitive } from "@base-ui/react/toast"
 import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
+import { NotificationCountdown } from "@/components/notification-countdown"
 import { XIcon, CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
 const toast = ToastPrimitive.createToastManager()
@@ -182,11 +183,27 @@ function ToastIcon({ type }: { type: string | undefined }) {
   )
 }
 
-function ToastList() {
+function ToastList({ timeout }: { timeout: number }) {
   const { toasts } = ToastPrimitive.useToastManager()
 
   return toasts.map((toastItem) => (
-    <Toast key={toastItem.id} toast={toastItem}>
+    <Toast
+      key={toastItem.id}
+      toast={toastItem}
+      render={(props, state) => (
+        <div {...props}>
+          {props.children}
+          {toastItem.type !== "loading" && (toastItem.timeout ?? timeout) > 0 && (
+            <NotificationCountdown
+              key={toastItem.updateKey}
+              duration={toastItem.timeout ?? timeout}
+              paused={state.expanded || state.transitionStatus === "ending"}
+              className="text-primary"
+            />
+          )}
+        </div>
+      )}
+    >
       <ToastContent>
         <ToastIcon type={toastItem.type} />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -203,14 +220,15 @@ function ToastList() {
 function Toaster({
   children,
   toastManager = toast,
+  timeout = 5000,
   ...props
 }: ToastPrimitive.Provider.Props) {
   return (
-    <ToastProvider toastManager={toastManager} {...props}>
+    <ToastProvider toastManager={toastManager} timeout={timeout} {...props}>
       {children}
       <ToastPortal>
         <ToastViewport>
-          <ToastList />
+          <ToastList timeout={timeout} />
         </ToastViewport>
       </ToastPortal>
     </ToastProvider>
