@@ -11,7 +11,7 @@ import {
     InputOTPSlot,
 } from '@/components/ui/input-otp';
 import { OTP_MAX_LENGTH } from '@/hooks/use-two-factor-auth';
-import { cn, focusFirstFormError } from '@/lib/utils';
+import { clearFormErrors, cn, focusFirstFormError } from '@/lib/utils';
 import { store } from '@/routes/two-factor/login';
 
 const AUTH_CONFIG = {
@@ -80,7 +80,11 @@ export default function TwoFactorChallenge() {
                                         id="recovery_code"
                                         name="recovery_code"
                                         onChange={() =>
-                                            clearErrors('recovery_code')
+                                            clearFormErrors(
+                                                errors,
+                                                clearErrors,
+                                                'recovery_code',
+                                            )
                                         }
                                         type="text"
                                         placeholder="Enter recovery code"
@@ -117,7 +121,11 @@ export default function TwoFactorChallenge() {
                                         value={code}
                                         onChange={(value) => {
                                             setCode(value);
-                                            clearErrors('code');
+                                            clearFormErrors(
+                                                errors,
+                                                clearErrors,
+                                                'code',
+                                            );
                                         }}
                                         disabled={processing}
                                         pattern={REGEXP_ONLY_DIGITS}

@@ -11,6 +11,16 @@ export function toUrl(url: NonNullable<InertiaLinkProps['href']>): string {
     return typeof url === 'string' ? url : url.url;
 }
 
+export function clearFormErrors<T extends string>(
+    errors: Partial<Record<T, unknown>>,
+    clearErrors: (...fields: T[]) => unknown,
+    ...fields: T[]
+): void {
+    if (fields.some((field) => errors[field])) {
+        clearErrors(...fields);
+    }
+}
+
 export function focusFirstFormError(
     formId: string,
     errors: Record<string, unknown>,

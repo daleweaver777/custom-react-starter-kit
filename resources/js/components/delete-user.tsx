@@ -26,7 +26,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
-import { focusFirstFormError } from '@/lib/utils';
+import { clearFormErrors, focusFirstFormError } from '@/lib/utils';
 
 export default function DeleteUser() {
     const formId = useId();
@@ -107,7 +107,11 @@ export default function DeleteUser() {
                                                 id="delete-password"
                                                 name="password"
                                                 onChange={() =>
-                                                    clearErrors('password')
+                                                    clearFormErrors(
+                                                        errors,
+                                                        clearErrors,
+                                                        'password',
+                                                    )
                                                 }
                                                 required
                                                 placeholder="Password"

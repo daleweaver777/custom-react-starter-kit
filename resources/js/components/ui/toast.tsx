@@ -116,6 +116,7 @@ function ToastClose({
     <ToastPrimitive.Close
       data-slot="toast-close"
       aria-label="Close toast"
+      aria-hidden={false}
       render={
         render ?? (
           <Button aria-label="Close toast" variant="ghost" size="icon-sm" />

@@ -10,7 +10,7 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { focusFirstFormError } from '@/lib/utils';
+import { clearFormErrors, focusFirstFormError } from '@/lib/utils';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 
@@ -45,7 +45,13 @@ export default function Register({ passwordRules }: Props) {
                                     autoFocus
                                     autoComplete="name"
                                     name="name"
-                                    onChange={() => clearErrors('name')}
+                                    onChange={() =>
+                                        clearFormErrors(
+                                            errors,
+                                            clearErrors,
+                                            'name',
+                                        )
+                                    }
                                     placeholder="Full name"
                                     aria-invalid={!!errors.name}
                                     aria-describedby={
@@ -67,7 +73,13 @@ export default function Register({ passwordRules }: Props) {
                                     required
                                     autoComplete="email"
                                     name="email"
-                                    onChange={() => clearErrors('email')}
+                                    onChange={() =>
+                                        clearFormErrors(
+                                            errors,
+                                            clearErrors,
+                                            'email',
+                                        )
+                                    }
                                     placeholder="email@example.com"
                                     aria-invalid={!!errors.email}
                                     aria-describedby={
@@ -89,7 +101,9 @@ export default function Register({ passwordRules }: Props) {
                                     autoComplete="new-password"
                                     name="password"
                                     onChange={() =>
-                                        clearErrors(
+                                        clearFormErrors(
+                                            errors,
+                                            clearErrors,
                                             'password',
                                             'password_confirmation',
                                         )
@@ -120,7 +134,9 @@ export default function Register({ passwordRules }: Props) {
                                     autoComplete="new-password"
                                     name="password_confirmation"
                                     onChange={() =>
-                                        clearErrors(
+                                        clearFormErrors(
+                                            errors,
+                                            clearErrors,
                                             'password',
                                             'password_confirmation',
                                         )

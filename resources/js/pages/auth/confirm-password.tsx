@@ -8,7 +8,7 @@ import {
     FieldGroup,
     FieldLabel,
 } from '@/components/ui/field';
-import { focusFirstFormError } from '@/lib/utils';
+import { clearFormErrors, focusFirstFormError } from '@/lib/utils';
 import { store } from '@/routes/password/confirm';
 /* @chisel-passkeys */
 import {
@@ -53,7 +53,13 @@ export default function ConfirmPassword() {
                                 id="password"
                                 required
                                 name="password"
-                                onChange={() => clearErrors('password')}
+                                onChange={() =>
+                                    clearFormErrors(
+                                        errors,
+                                        clearErrors,
+                                        'password',
+                                    )
+                                }
                                 placeholder="Password"
                                 autoComplete="current-password"
                                 autoFocus

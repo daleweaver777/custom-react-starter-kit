@@ -13,7 +13,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
-import { focusFirstFormError } from '@/lib/utils';
+import { clearFormErrors, focusFirstFormError } from '@/lib/utils';
 import { edit } from '@/routes/security';
 /* @chisel-passkeys */
 import type { Props as ManagePasskeysProps } from '@/components/manage-passkeys';
@@ -78,7 +78,11 @@ export default function Security(props: Props) {
                                             required
                                             name="current_password"
                                             onChange={() =>
-                                                clearErrors('current_password')
+                                                clearFormErrors(
+                                                    errors,
+                                                    clearErrors,
+                                                    'current_password',
+                                                )
                                             }
                                             autoComplete="current-password"
                                             placeholder="Current password"
@@ -108,7 +112,9 @@ export default function Security(props: Props) {
                                             required
                                             name="new_password"
                                             onChange={() =>
-                                                clearErrors(
+                                                clearFormErrors(
+                                                    errors,
+                                                    clearErrors,
                                                     'new_password',
                                                     'password_confirmation',
                                                 )
@@ -144,7 +150,9 @@ export default function Security(props: Props) {
                                             required
                                             name="password_confirmation"
                                             onChange={() =>
-                                                clearErrors(
+                                                clearFormErrors(
+                                                    errors,
+                                                    clearErrors,
                                                     'new_password',
                                                     'password_confirmation',
                                                 )

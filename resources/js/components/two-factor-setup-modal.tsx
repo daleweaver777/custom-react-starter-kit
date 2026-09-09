@@ -28,7 +28,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useAppearance } from '@/hooks/use-appearance';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { OTP_MAX_LENGTH } from '@/hooks/use-two-factor-auth';
-import { focusFirstFormError } from '@/lib/utils';
+import { clearFormErrors, focusFirstFormError } from '@/lib/utils';
 import { confirm } from '@/routes/two-factor';
 
 function GridScanIcon() {
@@ -224,7 +224,11 @@ function TwoFactorVerificationStep({
                                     value={code}
                                     onChange={(value) => {
                                         setCode(value);
-                                        clearErrors('code');
+                                        clearFormErrors(
+                                            errors,
+                                            clearErrors,
+                                            'code',
+                                        );
                                     }}
                                     disabled={processing}
                                     pattern={REGEXP_ONLY_DIGITS}

@@ -12,7 +12,7 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { focusFirstFormError } from '@/lib/utils';
+import { clearFormErrors, focusFirstFormError } from '@/lib/utils';
 /* @chisel-registration */
 import { register } from '@/routes';
 /* @end-chisel-registration */
@@ -60,7 +60,13 @@ export default function Login({ status, canResetPassword }: Props) {
                                     id="email"
                                     type="email"
                                     name="email"
-                                    onChange={() => clearErrors('email')}
+                                    onChange={() =>
+                                        clearFormErrors(
+                                            errors,
+                                            clearErrors,
+                                            'email',
+                                        )
+                                    }
                                     required
                                     autoFocus
                                     autoComplete="email"
@@ -82,7 +88,13 @@ export default function Login({ status, canResetPassword }: Props) {
                                 <PasswordInput
                                     id="password"
                                     name="password"
-                                    onChange={() => clearErrors('password')}
+                                    onChange={() =>
+                                        clearFormErrors(
+                                            errors,
+                                            clearErrors,
+                                            'password',
+                                        )
+                                    }
                                     required
                                     autoComplete="current-password"
                                     placeholder="Password"

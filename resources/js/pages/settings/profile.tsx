@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/card';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { focusFirstFormError } from '@/lib/utils';
+import { clearFormErrors, focusFirstFormError } from '@/lib/utils';
 import { edit } from '@/routes/profile';
 import type { Auth } from '@/types';
 /* @chisel-email-verification */
@@ -79,7 +79,13 @@ export default function Profile(
                                             id="name"
                                             defaultValue={auth.user.name}
                                             name="name"
-                                            onChange={() => clearErrors('name')}
+                                            onChange={() =>
+                                                clearFormErrors(
+                                                    errors,
+                                                    clearErrors,
+                                                    'name',
+                                                )
+                                            }
                                             required
                                             autoComplete="name"
                                             placeholder="Full name"
@@ -108,7 +114,11 @@ export default function Profile(
                                             defaultValue={auth.user.email}
                                             name="email"
                                             onChange={() =>
-                                                clearErrors('email')
+                                                clearFormErrors(
+                                                    errors,
+                                                    clearErrors,
+                                                    'email',
+                                                )
                                             }
                                             required
                                             autoComplete="username"

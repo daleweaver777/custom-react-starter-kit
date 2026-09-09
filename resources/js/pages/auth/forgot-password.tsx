@@ -10,7 +10,7 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { focusFirstFormError } from '@/lib/utils';
+import { clearFormErrors, focusFirstFormError } from '@/lib/utils';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
 
@@ -41,7 +41,13 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     id="email"
                                     type="email"
                                     name="email"
-                                    onChange={() => clearErrors('email')}
+                                    onChange={() =>
+                                        clearFormErrors(
+                                            errors,
+                                            clearErrors,
+                                            'email',
+                                        )
+                                    }
                                     autoComplete="email"
                                     required
                                     autoFocus

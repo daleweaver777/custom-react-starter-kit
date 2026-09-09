@@ -9,7 +9,7 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { focusFirstFormError } from '@/lib/utils';
+import { clearFormErrors, focusFirstFormError } from '@/lib/utils';
 import { update } from '@/routes/password';
 
 type Props = {
@@ -66,7 +66,9 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                                 required
                                 name="password"
                                 onChange={() =>
-                                    clearErrors(
+                                    clearFormErrors(
+                                        errors,
+                                        clearErrors,
                                         'password',
                                         'password_confirmation',
                                     )
@@ -96,7 +98,9 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                                 required
                                 name="password_confirmation"
                                 onChange={() =>
-                                    clearErrors(
+                                    clearFormErrors(
+                                        errors,
+                                        clearErrors,
                                         'password',
                                         'password_confirmation',
                                     )
