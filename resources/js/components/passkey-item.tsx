@@ -67,7 +67,7 @@ export default function PasskeyItem({ passkey, onDelete }: Props) {
                             variant="ghost"
                             size="sm"
                             aria-label={`Remove ${passkey.name}`}
-                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive [--focus-ring-color:var(--destructive)]"
                         />
                     }
                 >
