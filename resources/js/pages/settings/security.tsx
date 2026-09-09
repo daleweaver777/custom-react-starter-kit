@@ -145,6 +145,7 @@ export default function Security(props: Props) {
                                             name="password_confirmation"
                                             onChange={() =>
                                                 clearErrors(
+                                                    'new_password',
                                                     'password_confirmation',
                                                 )
                                             }

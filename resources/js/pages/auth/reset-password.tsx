@@ -96,7 +96,10 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                                 required
                                 name="password_confirmation"
                                 onChange={() =>
-                                    clearErrors('password_confirmation')
+                                    clearErrors(
+                                        'password',
+                                        'password_confirmation',
+                                    )
                                 }
                                 autoComplete="new-password"
                                 placeholder="Confirm password"

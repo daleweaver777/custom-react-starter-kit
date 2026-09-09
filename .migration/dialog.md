@@ -7,6 +7,8 @@
 - `resources/js/components/ui/dialog.tsx:4` uses `@base-ui/react/dialog`, with `Backdrop` and `Popup` replacing Radix Overlay and Content.
 - Delete-user and passkey dialogs now use trigger/close `render` props. The leftover scan `grep -n "radix-ui\|@radix-ui" resources/js/components/ui/dialog.tsx resources/js/components/delete-user.tsx resources/js/components/passkey-item.tsx` is clean.
 
+- 2026-09-09 quality review: constrain popup height to the dynamic viewport and enable internal scrolling so QR setup remains usable in landscape. The QR panel scales at 320px and renders the server SVG as an image with alternative text.
+
 ## Left alone
 
 - Destructive actions, Inertia form handlers, and Chisel-controlled passkey files remain functionally unchanged.

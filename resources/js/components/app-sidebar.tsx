@@ -1,4 +1,5 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
+import { useEffect } from 'react';
 import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -12,6 +13,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
@@ -38,6 +40,13 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { setOpenMobile } = useSidebar();
+
+    useEffect(() => {
+        const unsubscribe = router.on('navigate', () => setOpenMobile(false));
+        return () => unsubscribe();
+    }, [setOpenMobile]);
+
     return (
         <Sidebar collapsible="icon" variant="sidebar">
             <SidebarHeader>

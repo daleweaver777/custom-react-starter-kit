@@ -10,14 +10,15 @@
 - All 17 Radix-backed or Slot-backed UI wrappers and their application consumers were migrated. `grep -RInE "radix-ui|@radix-ui|\\basChild\\b" resources/js package.json` is clean.
 - The shadcn audit substitutions add Base UI `field`, `input-group`, `empty`, and `toast` wrappers; forms now expose semantic invalid states, appearance uses `ToggleGroup`, password and 2FA controls use `InputGroup`, and loading placeholders use `Skeleton`.
 - Laravel flash notifications now use the Base UI toast manager through `FlashToaster`; Sonner and its wrapper were removed.
-- Verification passed for frontend formatting/lint, the main-project TypeScript check and production build, Pint, PHPStan, and 39 PHPUnit tests (136 assertions).
-- Chisel completed successfully in disposable all-feature, no-optional-feature, and mixed-feature copies; production builds passed for all three variants, and TypeScript checks passed for the all-feature and mixed variants.
+- Verification passed for frontend formatting/lint, the main-project TypeScript check and production build, Pint, PHPStan, and 43 PHPUnit tests (152 assertions).
+- Chisel completed successfully in disposable all-feature, no-optional-feature, and mixed-feature copies; formatting/lint, TypeScript checks, and production builds passed for all three variants on 2026-09-09.
+
+- The 2026-09-09 quality review fixes mobile navigation dismissal, passkey focus restoration, theme subscriptions, two-factor loading/error flows, responsive overlays, and a login import incorrectly enclosed by the registration Chisel region. See `docs/quality-review-2026-09-09.md` for coverage and limits.
 
 ## Left alone
 
-- `cmdk`, `input-otp`, and other non-Radix libraries remain on their existing libraries, as required by the migration rules.
+- `input-otp` and other non-Radix libraries remain on their existing libraries, as required by the migration rules.
 - Laravel backend code, installer hooks, Chisel scripts, Chisel paths, and Chisel-controlled sections remain upstream-compatible.
-- The no-optional-feature copy retains an upstream TypeScript defect where Inertia shared page props resolve as `unknown`; the same failure was reproduced from untouched `upstream/main`, while that variant's production build passes.
 
 ## Behavior changes
 

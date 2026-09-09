@@ -1,5 +1,6 @@
-import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { BookOpen, Folder, LayoutGrid, Menu } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import AppLogo from '@/components/app-logo';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { Breadcrumbs } from '@/components/breadcrumbs';
@@ -64,6 +65,11 @@ const activeItemStyles =
     'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
 
 export function AppHeader({ breadcrumbs = [] }: Props) {
+    const [menuOpen, setMenuOpen] = useState(false);
+    useEffect(() => {
+        const unsubscribe = router.on('navigate', () => setMenuOpen(false));
+        return () => unsubscribe();
+    }, []);
     const page = usePage();
     const { auth } = page.props;
     const getInitials = useInitials();
@@ -75,11 +81,12 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                 <div className="mx-auto flex h-16 items-center px-4 md:max-w-7xl">
                     {/* Mobile Menu */}
                     <div className="lg:hidden">
-                        <Sheet>
+                        <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
                             <SheetTrigger
                                 render={
                                     <Button
                                         variant="ghost"
+                                        aria-label="Open navigation menu"
                                         size="icon"
                                         className="mr-2 h-[34px] w-[34px]"
                                     />
@@ -180,14 +187,6 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
 
                     <div className="ml-auto flex items-center space-x-2">
                         <div className="relative flex items-center space-x-1">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="group h-9 w-9 cursor-pointer"
-                                aria-label="Search"
-                            >
-                                <Search className="!size-5 opacity-80 group-hover:opacity-100" />
-                            </Button>
                             <div className="ml-1 hidden gap-1 lg:flex">
                                 {rightNavItems.map((item) => (
                                     <Tooltip key={item.title}>
@@ -233,6 +232,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                     <Button
                                         variant="ghost"
                                         className="size-10 rounded-full p-1"
+                                        aria-label="Account menu"
                                     />
                                 }
                             >

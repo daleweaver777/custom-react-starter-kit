@@ -1,5 +1,5 @@
 import { useHttp } from '@inertiajs/react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { qrCode, recoveryCodes, secretKey } from '@/routes/two-factor';
 
 export type UseTwoFactorAuthReturn = {
@@ -26,6 +26,7 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
     const [manualSetupKey, setManualSetupKey] = useState<string | null>(null);
     const [recoveryCodesList, setRecoveryCodesList] = useState<string[]>([]);
     const [errors, setErrors] = useState<string[]>([]);
+    const setupRequest = useRef<Promise<void> | null>(null);
 
     const hasSetupData = qrCodeSvg !== null && manualSetupKey !== null;
 
@@ -55,7 +56,10 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
 
             setQrCodeSvg(svg);
         } catch {
-            setErrors((prev) => [...prev, 'Failed to fetch QR code']);
+            setErrors((prev) => [
+                ...prev,
+                'Unable to load the QR code. Please try again.',
+            ]);
             setQrCodeSvg(null);
         }
     };
@@ -68,7 +72,10 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
 
             setManualSetupKey(key);
         } catch {
-            setErrors((prev) => [...prev, 'Failed to fetch a setup key']);
+            setErrors((prev) => [
+                ...prev,
+                'Unable to load the setup key. Please try again.',
+            ]);
             setManualSetupKey(null);
         }
     };
@@ -79,19 +86,27 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
             const codes = (await submit(recoveryCodes())) as string[];
             setRecoveryCodesList(codes);
         } catch {
-            setErrors((prev) => [...prev, 'Failed to fetch recovery codes']);
+            setErrors((prev) => [
+                ...prev,
+                'Unable to load recovery codes. Please try again.',
+            ]);
             setRecoveryCodesList([]);
         }
     };
 
     const fetchSetupData = async (): Promise<void> => {
-        try {
-            setErrors([]);
-            await Promise.all([fetchQrCode(), fetchSetupKey()]);
-        } catch {
-            setQrCodeSvg(null);
-            setManualSetupKey(null);
+        if (setupRequest.current) {
+            return setupRequest.current;
         }
+
+        setErrors([]);
+        setupRequest.current = Promise.all([fetchQrCode(), fetchSetupKey()])
+            .then(() => {})
+            .finally(() => {
+                setupRequest.current = null;
+            });
+
+        return setupRequest.current;
     };
 
     return {

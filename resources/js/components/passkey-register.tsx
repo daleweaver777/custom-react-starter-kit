@@ -1,6 +1,6 @@
 import { usePasskeyRegister } from '@laravel/passkeys/react';
 import { Info } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -17,8 +17,9 @@ type Props = {
 };
 
 export default function PasskeyRegistration({ onSuccess }: Props) {
+    const addButtonRef = useRef<HTMLButtonElement>(null);
     const [name, setName] = useState(() => {
-        const ua = navigator.userAgent;
+        const ua = typeof navigator === 'undefined' ? '' : navigator.userAgent;
 
         const browser = [
             { pattern: /Edg|Edge/, name: 'Edge' },
@@ -44,6 +45,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
         onSuccess: () => {
             setName('');
             setShowForm(false);
+            requestAnimationFrame(() => addButtonRef.current?.focus());
             onSuccess();
         },
     });
@@ -61,6 +63,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
     const handleCancel = () => {
         setShowForm(false);
         setName('');
+        requestAnimationFrame(() => addButtonRef.current?.focus());
     };
 
     if (!isSupported) {
@@ -76,7 +79,11 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
 
     if (!showForm) {
         return (
-            <Button variant="outline" onClick={() => setShowForm(true)}>
+            <Button
+                ref={addButtonRef}
+                variant="outline"
+                onClick={() => setShowForm(true)}
+            >
                 Add passkey
             </Button>
         );
@@ -102,6 +109,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
                                 : 'passkey-name-description'
                         }
                         value={name}
+                        disabled={isLoading}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="e.g., MacBook Pro, iPhone"
                         className="bg-background"
@@ -122,7 +130,12 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
                 <Button type="submit" disabled={isLoading || !name.trim()}>
                     Register passkey
                 </Button>
-                <Button type="button" variant="ghost" onClick={handleCancel}>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleCancel}
+                    disabled={isLoading}
+                >
                     Cancel
                 </Button>
             </div>

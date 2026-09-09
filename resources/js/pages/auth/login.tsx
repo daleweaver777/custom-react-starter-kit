@@ -12,8 +12,8 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-/* @chisel-registration */
 import { focusFirstFormError } from '@/lib/utils';
+/* @chisel-registration */
 import { register } from '@/routes';
 /* @end-chisel-registration */
 import { store } from '@/routes/login';

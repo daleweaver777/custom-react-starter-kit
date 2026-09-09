@@ -9,8 +9,8 @@ export function useClipboard(): UseClipboardReturn {
     const [copiedText, setCopiedText] = useState<CopiedValue>(null);
 
     const copy: CopyFn = async (text) => {
-        if (!navigator?.clipboard) {
-            console.warn('Clipboard not supported');
+        if (typeof navigator === 'undefined' || !navigator.clipboard) {
+            setCopiedText(null);
 
             return false;
         }
@@ -20,8 +20,7 @@ export function useClipboard(): UseClipboardReturn {
             setCopiedText(text);
 
             return true;
-        } catch (error) {
-            console.warn('Copy failed', error);
+        } catch {
             setCopiedText(null);
 
             return false;

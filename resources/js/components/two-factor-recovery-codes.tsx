@@ -1,6 +1,6 @@
 import { Form } from '@inertiajs/react';
 import { Eye, EyeOff, RefreshCw } from 'lucide-react';
-import { useCallback, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import AlertError from '@/components/alert-error';
 import {
     AlertDialog,
@@ -41,25 +41,36 @@ export default function TwoFactorRecoveryCodes({
 }: Props) {
     const [codesAreVisible, setCodesAreVisible] = useState<boolean>(false);
     const [isRegenerateOpen, setIsRegenerateOpen] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const loadingRef = useRef(false);
     const codesSectionRef = useRef<HTMLUListElement | null>(null);
     const canRegenerateCodes = recoveryCodesList.length > 0 && codesAreVisible;
 
-    const toggleCodesVisibility = useCallback(async () => {
-        if (!codesAreVisible && !recoveryCodesList.length) {
-            await fetchRecoveryCodes();
+    const toggleCodesVisibility = async () => {
+        if (loadingRef.current) {
+            return;
         }
 
-        setCodesAreVisible((areVisible) => !areVisible);
+        if (codesAreVisible) {
+            setCodesAreVisible(false);
+            return;
+        }
 
-        if (!codesAreVisible) {
-            setTimeout(() => {
-                codesSectionRef.current?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'nearest',
-                });
+        setCodesAreVisible(true);
+
+        if (!recoveryCodesList.length) {
+            loadingRef.current = true;
+            setIsLoading(true);
+            await fetchRecoveryCodes().finally(() => {
+                loadingRef.current = false;
+                setIsLoading(false);
             });
         }
-    }, [codesAreVisible, recoveryCodesList.length, fetchRecoveryCodes]);
+
+        requestAnimationFrame(() => {
+            codesSectionRef.current?.scrollIntoView({ block: 'nearest' });
+        });
+    };
 
     const RecoveryCodeIconComponent = codesAreVisible ? EyeOff : Eye;
 
@@ -126,7 +137,7 @@ export default function TwoFactorRecoveryCodes({
                 </CardContent>
             )}
 
-            <CardFooter className="justify-end gap-3">
+            <CardFooter className="flex-wrap justify-end gap-3">
                 {canRegenerateCodes && (
                     <AlertDialog
                         open={isRegenerateOpen}
@@ -192,6 +203,7 @@ export default function TwoFactorRecoveryCodes({
 
                 <Button
                     onClick={toggleCodesVisibility}
+                    disabled={isLoading}
                     aria-expanded={codesAreVisible}
                     aria-controls={
                         codesAreVisible ? RECOVERY_CODES_ID : undefined

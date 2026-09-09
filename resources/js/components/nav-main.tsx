@@ -19,7 +19,17 @@ export function NavMain({ items }: { items: NavItem[] }) {
                 {items.map((item) => (
                     <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
-                            render={<Link href={item.href} prefetch />}
+                            render={
+                                <Link
+                                    href={item.href}
+                                    prefetch
+                                    aria-current={
+                                        isCurrentUrl(item.href)
+                                            ? 'page'
+                                            : undefined
+                                    }
+                                />
+                            }
                             isActive={isCurrentUrl(item.href)}
                             tooltip={{ children: item.title }}
                         >

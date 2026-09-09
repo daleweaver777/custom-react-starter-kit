@@ -12,7 +12,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Field, FieldGroup } from '@/components/ui/field';
+import { Field, FieldGroup, FieldSeparator } from '@/components/ui/field';
 import {
     InputGroup,
     InputGroupAddon,
@@ -63,32 +63,39 @@ function TwoFactorSetupStep({
     buttonText,
     onNextStep,
     errors,
+    onRetry,
 }: {
     qrCodeSvg: string | null;
     manualSetupKey: string | null;
     buttonText: string;
     onNextStep: () => void;
     errors: string[];
+    onRetry: () => Promise<void>;
 }) {
     const { resolvedAppearance } = useAppearance();
     const [copiedText, copy] = useClipboard();
+    const [copyMessage, setCopyMessage] = useState('');
     const IconComponent = copiedText === manualSetupKey ? Check : Copy;
 
     return (
         <>
             {errors?.length ? (
-                <AlertError errors={errors} />
+                <>
+                    <AlertError errors={errors} />
+                    <Button variant="outline" onClick={onRetry}>
+                        Try again
+                    </Button>
+                </>
             ) : (
                 <>
-                    <div className="mx-auto flex max-w-md overflow-hidden">
-                        <div className="border-border mx-auto aspect-square w-64 rounded-lg border">
+                    <div className="mx-auto flex w-full max-w-64 min-w-0 overflow-hidden">
+                        <div className="border-border mx-auto aspect-square w-full min-w-0 rounded-lg border">
                             <div className="z-10 flex h-full w-full items-center justify-center p-5">
                                 {qrCodeSvg ? (
-                                    <div
-                                        className="aspect-square w-full rounded-lg bg-white p-2 [&_svg]:size-full"
-                                        dangerouslySetInnerHTML={{
-                                            __html: qrCodeSvg,
-                                        }}
+                                    <img
+                                        className="aspect-square w-full rounded-lg bg-white p-2"
+                                        src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(qrCodeSvg)}`}
+                                        alt="QR code for setting up two-factor authentication"
                                         style={{
                                             filter:
                                                 resolvedAppearance === 'dark'
@@ -104,17 +111,18 @@ function TwoFactorSetupStep({
                     </div>
 
                     <div className="flex w-full gap-5">
-                        <Button className="w-full" onClick={onNextStep}>
+                        <Button
+                            className="w-full"
+                            onClick={onNextStep}
+                            disabled={!qrCodeSvg || !manualSetupKey}
+                        >
                             {buttonText}
                         </Button>
                     </div>
 
-                    <div className="relative flex w-full items-center justify-center">
-                        <div className="bg-border absolute inset-0 top-1/2 h-px w-full" />
-                        <span className="bg-card relative px-2 py-1">
-                            or, enter the code manually
-                        </span>
-                    </div>
+                    <FieldSeparator>
+                        Or enter the setup key manually
+                    </FieldSeparator>
 
                     <InputGroup>
                         <InputGroupInput
@@ -127,7 +135,15 @@ function TwoFactorSetupStep({
                             {manualSetupKey ? (
                                 <InputGroupButton
                                     size="icon-xs"
-                                    onClick={() => copy(manualSetupKey)}
+                                    onClick={async () => {
+                                        const copied =
+                                            await copy(manualSetupKey);
+                                        setCopyMessage(
+                                            copied
+                                                ? 'Setup key copied.'
+                                                : 'Unable to copy the setup key. Select and copy it manually.',
+                                        );
+                                    }}
                                     aria-label="Copy setup key"
                                 >
                                     <IconComponent />
@@ -137,6 +153,11 @@ function TwoFactorSetupStep({
                             )}
                         </InputGroupAddon>
                     </InputGroup>
+                    {copyMessage && (
+                        <p role="status" className="text-sm">
+                            {copyMessage}
+                        </p>
+                    )}
                 </>
             )}
         </>
@@ -166,7 +187,10 @@ function TwoFactorVerificationStep({
     return (
         <Form
             id={formId}
-            onError={(errors) => focusFirstFormError(formId, errors)}
+            onError={(errors) => {
+                setCode('');
+                focusFirstFormError(formId, errors);
+            }}
             noValidate
             {...confirm.form()}
             errorBag="confirmTwoFactorAuthentication"
@@ -197,6 +221,7 @@ function TwoFactorVerificationStep({
                                     required
                                     minLength={OTP_MAX_LENGTH}
                                     maxLength={OTP_MAX_LENGTH}
+                                    value={code}
                                     onChange={(value) => {
                                         setCode(value);
                                         clearErrors('code');
@@ -337,10 +362,10 @@ export default function TwoFactorSetupModal({
     }, [fetchSetupData]);
 
     useEffect(() => {
-        if (isOpen && !qrCodeSvg) {
+        if (isOpen) {
             void fetchSetupDataRef.current();
         }
-    }, [isOpen, qrCodeSvg]);
+    }, [isOpen]);
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -366,6 +391,7 @@ export default function TwoFactorSetupModal({
                             buttonText={modalConfig.buttonText}
                             onNextStep={handleModalNextStep}
                             errors={errors}
+                            onRetry={fetchSetupData}
                         />
                     )}
                 </div>

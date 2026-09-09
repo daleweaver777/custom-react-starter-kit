@@ -9,7 +9,7 @@ export default function AuthSimpleLayout({
     description,
 }: AuthLayoutProps) {
     return (
-        <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
+        <main className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
             <div className="w-full max-w-sm">
                 <div className="flex flex-col gap-8">
                     <div className="flex flex-col items-center gap-4">
@@ -20,7 +20,7 @@ export default function AuthSimpleLayout({
                             <div className="mb-1 flex size-9 items-center justify-center rounded-lg">
                                 <AppLogoIcon className="text-foreground size-9 fill-current" />
                             </div>
-                            <span className="sr-only">{title}</span>
+                            <span className="sr-only">Home</span>
                         </Link>
 
                         <div className="flex flex-col gap-1 text-center">
@@ -35,6 +35,6 @@ export default function AuthSimpleLayout({
                     {children}
                 </div>
             </div>
-        </div>
+        </main>
     );
 }

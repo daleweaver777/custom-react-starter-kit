@@ -120,7 +120,10 @@ export default function Register({ passwordRules }: Props) {
                                     autoComplete="new-password"
                                     name="password_confirmation"
                                     onChange={() =>
-                                        clearErrors('password_confirmation')
+                                        clearErrors(
+                                            'password',
+                                            'password_confirmation',
+                                        )
                                     }
                                     placeholder="Confirm password"
                                     passwordrules={passwordRules}
