@@ -39,6 +39,8 @@ The environment-variable syntax above is for POSIX shells. On other shells, set 
 
 This flag matters because dependency resolution without a Composer lockfile can invoke `post-update-cmd`, which includes `install:features`. Without deferral, that command can trim features and delete installer and maintainer files from the checkout. Do not use `composer run setup` directly on the starter-kit source; reserve the installed-app setup workflow for generated applications.
 
+The disposable CI setup workflow creates `.env` before installing Composer dependencies. Keep this order: dependency installation can invoke Chisel, whose initial migrations need the application's configured environment.
+
 For a new local environment, copy `.env.example` to `.env`, configure the database, and generate an application key with `php artisan key:generate`. With SQLite, create `database/database.sqlite` if needed. Then run:
 
 ```bash
