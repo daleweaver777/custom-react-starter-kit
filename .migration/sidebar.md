@@ -13,6 +13,8 @@
 
 ## Behavior changes
 
+- Mobile sidebar width matches the desktop default (`16rem`), capped at the viewport width minus `2rem`. Its inline width overrides the Sheet's side-specific percentage width so resizing across the `sm` breakpoint does not change the drawer width.
+
 ## Verify by hand
 
 - Collapse/expand the sidebar on desktop and mobile, use its keyboard shortcut, tab through links, and confirm active and tooltip states.
