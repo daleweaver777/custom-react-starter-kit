@@ -20,7 +20,7 @@ The Laravel installer runs the starter kit's `post-create-project` hook, which i
 
 ## Syncing Laravel Upstream Manually
 
-The official Laravel repository should be configured as `upstream`; your repository should be `origin`. Keep custom work on `custom/base-ui-nova` (or a branch based on it), then merge Laravel updates so Git performs a three-way merge and reports conflicts instead of silently replacing local UI work.
+The official Laravel repository should be configured as `upstream`; your repository should be `origin`. Keep completed custom work on `main`, then merge Laravel updates so Git performs a three-way merge and reports conflicts instead of silently replacing local UI work.
 
 One-time setup after cloning your own repository:
 
@@ -34,7 +34,7 @@ git config rerere.autoupdate true
 For each sync:
 
 ```bash
-git switch custom/base-ui-nova
+git switch main
 git status --short
 git fetch upstream
 git branch backup/pre-upstream-sync-YYYY-MM-DD

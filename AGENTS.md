@@ -1,6 +1,6 @@
 # Repository Instructions
 
-This repository tracks `https://github.com/laravel/react-starter-kit.git` as the `upstream` remote. The customization branch is `custom/base-ui-nova`; the user's own hosted repository should be configured as `origin`.
+This repository tracks `https://github.com/laravel/react-starter-kit.git` as the `upstream` remote. The customization branch is `main`; keep completed custom work on `main`. The user's own hosted repository should be configured as `origin`.
 
 ## Non-negotiable invariants
 
