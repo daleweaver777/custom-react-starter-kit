@@ -55,7 +55,7 @@ export default function Security(props: Props) {
                         preserveScroll: true,
                     }}
                     resetOnError={[
-                        'new_password',
+                        'password',
                         'password_confirmation',
                         'current_password',
                     ]}
@@ -91,48 +91,48 @@ export default function Security(props: Props) {
                                             }
                                             aria-describedby={
                                                 errors.current_password
-                                                    ? 'current_new_password-error'
+                                                    ? 'current_password-error'
                                                     : undefined
                                             }
                                         />
 
                                         <InputError
-                                            id="current_new_password-error"
+                                            id="current_password-error"
                                             message={errors.current_password}
                                         />
                                     </Field>
 
-                                    <Field data-invalid={!!errors.new_password}>
-                                        <FieldLabel htmlFor="new_password">
+                                    <Field data-invalid={!!errors.password}>
+                                        <FieldLabel htmlFor="password">
                                             New password
                                         </FieldLabel>
 
                                         <PasswordInput
-                                            id="new_password"
+                                            id="password"
                                             required
-                                            name="new_password"
+                                            name="password"
                                             onChange={() =>
                                                 clearFormErrors(
                                                     errors,
                                                     clearErrors,
-                                                    'new_password',
+                                                    'password',
                                                     'password_confirmation',
                                                 )
                                             }
                                             autoComplete="new-password"
                                             placeholder="New password"
                                             passwordrules={props.passwordRules}
-                                            aria-invalid={!!errors.new_password}
+                                            aria-invalid={!!errors.password}
                                             aria-describedby={
-                                                errors.new_password
-                                                    ? 'new_password-error'
+                                                errors.password
+                                                    ? 'password-error'
                                                     : undefined
                                             }
                                         />
 
                                         <InputError
-                                            id="new_password-error"
-                                            message={errors.new_password}
+                                            id="password-error"
+                                            message={errors.password}
                                         />
                                     </Field>
 
@@ -153,7 +153,7 @@ export default function Security(props: Props) {
                                                 clearFormErrors(
                                                     errors,
                                                     clearErrors,
-                                                    'new_password',
+                                                    'password',
                                                     'password_confirmation',
                                                 )
                                             }

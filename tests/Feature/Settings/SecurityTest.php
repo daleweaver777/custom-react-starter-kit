@@ -4,9 +4,14 @@ namespace Tests\Feature\Settings;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Log\Events\MessageLogged;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Inertia\DevTools\IncomingEntryBuilder;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Fortify\Features;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class SecurityTest extends TestCase
@@ -99,7 +104,7 @@ class SecurityTest extends TestCase
             ->from(route('security.edit'))
             ->put(route('user-password.update'), [
                 'current_password' => 'password',
-                'new_password' => 'new-password',
+                'password' => 'new-password',
                 'password_confirmation' => 'new-password',
             ]);
 
@@ -119,7 +124,7 @@ class SecurityTest extends TestCase
             ->from(route('security.edit'))
             ->put(route('user-password.update'), [
                 'current_password' => 'wrong-password',
-                'new_password' => 'new-password',
+                'password' => 'new-password',
                 'password_confirmation' => 'new-password',
             ]);
 
@@ -135,24 +140,25 @@ class SecurityTest extends TestCase
         $this->actingAs($user)
             ->put(route('user-password.update'), [
                 'current_password' => 'password',
-                'new_password' => 'new-password',
+                'password' => 'new-password',
                 'password_confirmation' => 'different-password',
-            ])->assertSessionHasErrors('password_confirmation')
-            ->assertSessionDoesntHaveErrors('new_password');
+            ])->assertSessionHasErrors([
+                'password_confirmation' => 'The password confirmation field must match new password.',
+            ])
+            ->assertSessionDoesntHaveErrors('password');
 
         $this->assertTrue(Hash::check('password', $user->refresh()->password));
     }
 
-    public function test_new_password_is_required_even_if_password_is_submitted(): void
+    public function test_password_is_required(): void
     {
         $user = User::factory()->create();
 
         $this->actingAs($user)
             ->put(route('user-password.update'), [
                 'current_password' => 'password',
-                'password' => 'new-password',
                 'password_confirmation' => 'new-password',
-            ])->assertSessionHasErrors('new_password');
+            ])->assertSessionHasErrors('password');
 
         $this->assertTrue(Hash::check('password', $user->refresh()->password));
     }

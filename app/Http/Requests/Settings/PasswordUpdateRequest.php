@@ -19,8 +19,20 @@ class PasswordUpdateRequest extends FormRequest
     {
         return [
             'current_password' => $this->currentPasswordRules(),
-            'new_password' => $this->passwordRules(),
-            'password_confirmation' => $this->passwordConfirmationRules('new_password'),
+            'password' => $this->passwordRules(),
+            'password_confirmation' => $this->passwordConfirmationRules(),
+        ];
+    }
+
+    /**
+     * Get the display names used in validation messages.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'password' => __('new password'),
         ];
     }
 }
