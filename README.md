@@ -41,6 +41,8 @@ The starting configuration is in `.env.example`:
 
 Authentication includes login and password reset. Registration, email verification, two-factor authentication, passkeys, and password confirmation depend on the options retained during installation.
 
+Changing a password signs out other browser sessions and revokes their remembered logins. The browser making the change stays signed in with a new session ID and CSRF token. Resetting a forgotten password requires all browsers to sign in again. Revoked sessions are rejected on their next request; this works with any session storage driver.
+
 ## Development
 
 `composer run dev` starts the Laravel development server, queue listener, and frontend development server. It also starts the Pail log viewer when the PHP `pcntl` extension is available.

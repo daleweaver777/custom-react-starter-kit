@@ -4,14 +4,9 @@ namespace Tests\Feature\Settings;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Log\Events\MessageLogged;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use Inertia\DevTools\IncomingEntryBuilder;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Fortify\Features;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class SecurityTest extends TestCase

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
 use App\Http\Requests\Settings\TwoFactorAuthenticationRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -61,9 +63,15 @@ class SecurityController extends Controller
      */
     public function update(PasswordUpdateRequest $request): RedirectResponse
     {
-        $request->user()->update([
-            'password' => $request->validated('password'),
-        ]);
+        $user = $request->user();
+
+        // Save one password hash and revoke old remembered logins in the same update.
+        $user->password = $request->validated('password');
+        $user->setRememberToken(Str::random(60));
+        $user->save();
+
+        // Rotate this session and refresh its remembered login; middleware updates its fingerprint.
+        Auth::login($user, $request->hasCookie(Auth::getRecallerName()));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Password updated.')]);
 
