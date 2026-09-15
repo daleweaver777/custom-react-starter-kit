@@ -14,7 +14,7 @@ trait PasswordValidationRules
      */
     protected function passwordRules(): array
     {
-        return ['required', 'string', Password::default()];
+        return [...$this->passwordInputRules(), Password::default()];
     }
 
     /**
@@ -24,7 +24,7 @@ trait PasswordValidationRules
      */
     protected function passwordConfirmationRules(string $passwordField = 'password'): array
     {
-        return ['required', 'string', 'same:'.$passwordField];
+        return [...$this->passwordInputRules(), 'same:'.$passwordField];
     }
 
     /**
@@ -34,6 +34,16 @@ trait PasswordValidationRules
      */
     protected function currentPasswordRules(): array
     {
-        return ['required', 'string', 'current_password'];
+        return [...$this->passwordInputRules(), 'current_password'];
+    }
+
+    /**
+     * Bound password input before hashing or verification.
+     *
+     * @return array<int, string>
+     */
+    protected function passwordInputRules(): array
+    {
+        return ['bail', 'required', 'string', 'max:255'];
     }
 }

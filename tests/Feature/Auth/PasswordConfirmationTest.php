@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Fortify\Fortify;
 use Tests\TestCase;
 
 class PasswordConfirmationTest extends TestCase
@@ -45,5 +46,40 @@ class PasswordConfirmationTest extends TestCase
         $this->getJson(route('password.confirmation'))
             ->assertOk()
             ->assertJson(['confirmed' => true]);
+    }
+
+    public function test_validation_precedes_the_custom_fortify_confirmation_callback(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        $originalCallback = Fortify::$confirmPasswordsUsingCallback;
+        $calls = [];
+
+        Fortify::confirmPasswordsUsing(function ($confirmedUser, $password) use ($user, &$calls): bool {
+            $this->assertTrue($user->is($confirmedUser));
+            $calls[] = $password;
+
+            return $password === 'custom-confirmation';
+        });
+
+        try {
+            foreach ([['invalid'], str_repeat('a', 256)] as $password) {
+                $this->postJson(route('password.confirm.store'), ['password' => $password])
+                    ->assertUnprocessable()->assertJsonValidationErrors('password')
+                    ->assertSessionMissing('auth.password_confirmed_at');
+            }
+            $this->assertSame([], $calls);
+
+            $this->postJson(route('password.confirm.store'), ['password' => 'wrong'])
+                ->assertUnprocessable()->assertJsonPath('errors.password.0', 'The provided password was incorrect.')
+                ->assertSessionMissing('auth.password_confirmed_at');
+
+            $this->postJson(route('password.confirm.store'), ['password' => 'custom-confirmation'])
+                ->assertCreated()->assertSessionHas('auth.password_confirmed_at');
+
+            $this->assertSame(['wrong', 'custom-confirmation'], $calls);
+        } finally {
+            Fortify::$confirmPasswordsUsingCallback = $originalCallback;
+        }
     }
 }
