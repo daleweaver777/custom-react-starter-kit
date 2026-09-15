@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Laravel\Fortify\Features;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class PasswordResetTest extends TestCase
@@ -38,6 +39,89 @@ class PasswordResetTest extends TestCase
         $this->post(route('password.email'), ['email' => $user->email]);
 
         Notification::assertSentTo($user, ResetPassword::class);
+    }
+
+    #[DataProvider('responseFormats')]
+    public function test_reset_link_responses_do_not_disclose_account_existence(bool $json): void
+    {
+        Notification::fake();
+        $user = User::factory()->create(['email' => 'test@example.com']);
+        $message = 'If an account exists with that email address, you’ll receive a password reset link shortly.';
+
+        // Unknown, sent, throttled (including mixed case), and unknown again.
+        foreach (['missing@example.com', $user->email, 'TEST@EXAMPLE.COM', 'missing@example.com'] as $index => $email) {
+            $response = $json
+                ? $this->postJson(route('password.email'), ['email' => $email])
+                : $this->from(route('password.request'))->post(route('password.email'), ['email' => $email]);
+
+            if ($json) {
+                $response->assertOk()->assertExactJson(['message' => $message]);
+            } else {
+                $response->assertRedirect(route('password.request'))
+                    ->assertSessionHas('status', $message)
+                    ->assertSessionHasNoErrors()
+                    ->assertSessionMissing('_old_input');
+
+                $this->get(route('password.request'))->assertInertia(fn ($page) => $page
+                    ->component('auth/forgot-password')
+                    ->where('status', $message)
+                    ->where('errors', []));
+            }
+
+            Notification::assertCount($index === 0 ? 0 : 1);
+            $this->assertDatabaseCount('password_reset_tokens', $index === 0 ? 0 : 1);
+        }
+
+        // A throttled request must leave the previously emailed token usable.
+        $notification = Notification::sent($user, ResetPassword::class)->sole();
+        $this->assertTrue(Password::tokenExists($user, $notification->token));
+
+        $this->travel(61)->seconds();
+        $this->postJson(route('password.email'), ['email' => $user->email])
+            ->assertOk()->assertExactJson(['message' => $message]);
+        Notification::assertSentToTimes($user, ResetPassword::class, 2);
+        $this->assertFalse(Password::tokenExists($user, $notification->token));
+    }
+
+    public static function responseFormats(): array
+    {
+        return [
+            'JSON' => [true],
+            'browser' => [false],
+        ];
+    }
+
+    #[DataProvider('invalidResetEmails')]
+    public function test_invalid_reset_email_still_returns_validation_errors(mixed $email, bool $json): void
+    {
+        Notification::fake();
+
+        if ($json) {
+            $this->postJson(route('password.email'), ['email' => $email])
+                ->assertUnprocessable()->assertJsonValidationErrors('email');
+        } else {
+            $this->from(route('password.request'))->post(route('password.email'), ['email' => $email])
+                ->assertRedirect(route('password.request'))
+                ->assertSessionHasErrors('email')
+                ->assertSessionMissing('status');
+        }
+
+        Notification::assertNothingSent();
+        $this->assertDatabaseCount('password_reset_tokens', 0);
+    }
+
+    public static function invalidResetEmails(): array
+    {
+        return [
+            'missing JSON' => [null, true],
+            'missing browser' => [null, false],
+            'empty JSON' => ['', true],
+            'empty browser' => ['', false],
+            'malformed JSON' => ['not-an-email', true],
+            'malformed browser' => ['not-an-email', false],
+            'array JSON' => [['test@example.com'], true],
+            'array browser' => [['test@example.com'], false],
+        ];
     }
 
     public function test_reset_password_screen_can_be_rendered()

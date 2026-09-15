@@ -10,6 +10,7 @@ use App\Actions\Fortify\ResetUserPassword;
 /* @chisel-password-confirmation */
 use App\Http\Middleware\ValidatePasswordConfirmation;
 /* @end-chisel-password-confirmation */
+use App\Http\Responses\PasswordResetLinkResponse;
 use Illuminate\Cache\RateLimiting\Limit;
 /* @chisel-passkeys */
 use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
@@ -22,6 +23,8 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
+use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
+use Laravel\Fortify\Contracts\SuccessfulPasswordResetLinkRequestResponse;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 
@@ -32,7 +35,8 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(SuccessfulPasswordResetLinkRequestResponse::class, PasswordResetLinkResponse::class);
+        $this->app->bind(FailedPasswordResetLinkRequestResponse::class, PasswordResetLinkResponse::class);
     }
 
     /**
