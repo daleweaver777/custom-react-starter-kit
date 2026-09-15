@@ -95,6 +95,29 @@ class PasswordResetTest extends TestCase
         $response->assertSessionHasErrors('email');
     }
 
+    public function test_mixed_case_email_works_for_reset_requests_and_token_submission(): void
+    {
+        Notification::fake();
+        $user = User::factory()->create(['email' => 'test@example.com']);
+
+        $this->post(route('password.email'), ['email' => 'Test@Example.COM'])
+            ->assertSessionHasNoErrors();
+
+        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
+            $this->post(route('password.update'), [
+                'token' => $notification->token,
+                'email' => 'TEST@EXAMPLE.COM',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ])->assertSessionHasNoErrors()->assertRedirect(route('login'));
+
+            $this->assertTrue(Hash::check('new-password', $user->fresh()->password));
+            $this->assertFalse(Password::tokenExists($user->fresh(), $notification->token));
+
+            return true;
+        });
+    }
+
     public function test_password_mismatch_is_reported_on_confirmation(): void
     {
         $user = User::factory()->create();

@@ -9,6 +9,7 @@ use App\Notifications\EmailChanged;
 use App\Notifications\VerifyEmailChange;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -202,6 +203,26 @@ class EmailChangeTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    public function test_case_only_profile_edits_and_duplicate_email_requests_are_rejected(): void
+    {
+        $user = User::factory()->create(['email' => 'test@example.com']);
+        User::factory()->create(['email' => 'other@example.com']);
+        $this->actingAs($user)->withSession(['auth.password_confirmed_at' => time()]);
+
+        $this->patch(route('profile.update'), [
+            'name' => $user->name,
+            'email' => 'TEST@EXAMPLE.COM',
+        ])->assertSessionHasErrors('email');
+
+        foreach (['TEST@EXAMPLE.COM', 'OTHER@EXAMPLE.COM'] as $email) {
+            $this->post(route('profile.email.store'), ['email' => $email])->assertSessionHasErrors('email');
+        }
+
+        $this->assertSame('test@example.com', $user->fresh()->email);
+        $this->assertDatabaseCount('pending_email_changes', 0);
+        Notification::assertNothingSent();
+    }
+
     public function test_address_claimed_while_pending_cannot_be_taken_over(): void
     {
         $user = User::factory()->create();
@@ -239,6 +260,37 @@ class EmailChangeTest extends TestCase
         $this->assertArrayNotHasKey('password_fingerprint', $pending->toArray());
         $this->post($url)->assertSessionHasNoErrors();
         $this->assertSame('new@example.com', $user->fresh()->email);
+    }
+
+    public function test_mixed_case_email_change_preserves_login_and_recovery(): void
+    {
+        $user = User::factory()->create(['email' => 'old@example.com']);
+        $url = $this->requestChange($user, 'New@Example.COM');
+        $this->post($url)->assertSessionHasNoErrors();
+        $this->assertSame('new@example.com', $user->fresh()->email);
+
+        Auth::logout();
+        $this->flushSession();
+        $this->post(route('login.store'), ['email' => 'NEW@EXAMPLE.COM', 'password' => 'password'])
+            ->assertSessionHasNoErrors();
+        $this->assertAuthenticatedAs($user);
+
+        Auth::logout();
+        $this->flushSession();
+        $this->post(route('password.email'), ['email' => 'New@Example.COM'])->assertSessionHasNoErrors();
+        Notification::assertSentTo($user->fresh(), ResetPassword::class);
+    }
+
+    public function test_case_variant_claim_while_pending_is_rejected_at_confirmation(): void
+    {
+        $user = User::factory()->create(['email' => 'old@example.com']);
+        $url = $this->requestChange($user, 'New@Example.COM');
+        $other = User::factory()->create(['email' => 'NEW@EXAMPLE.COM']);
+
+        $this->post($url)->assertSessionHasErrors('email');
+        $this->assertSame('old@example.com', $user->fresh()->email);
+        $this->assertSame('new@example.com', $other->fresh()->email);
+        Notification::assertSentOnDemandTimes(EmailChanged::class, 0);
     }
 
     public function test_password_reset_invalidates_pending_email_authorization(): void
