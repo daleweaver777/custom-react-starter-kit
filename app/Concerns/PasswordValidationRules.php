@@ -2,27 +2,27 @@
 
 namespace App\Concerns;
 
-use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Validation\Rules\Password;
 
 trait PasswordValidationRules
 {
     /**
-     * Get the validation rules used to validate passwords.
+     * Get the validation rules for choosing a new password.
      *
-     * @return array<int, Password|ValidationRule|array<mixed>|string>
+     * @return array<int, Password|string>
      */
-    protected function passwordRules(): array
+    protected function newPasswordRules(): array
     {
         return [...$this->passwordInputRules(), Password::default()];
     }
 
     /**
-     * Get the validation rules used to validate password confirmation.
+     * Get the validation rules for matching two password fields.
      *
      * @return array<int, string>
      */
-    protected function passwordConfirmationRules(string $passwordField = 'password'): array
+    protected function matchingPasswordRules(string $passwordField = 'password'): array
     {
         return [...$this->passwordInputRules(), 'same:'.$passwordField];
     }
@@ -30,7 +30,7 @@ trait PasswordValidationRules
     /**
      * Get the validation rules used to validate the current password.
      *
-     * @return array<int, Password|ValidationRule|array<mixed>|string>
+     * @return array<int, string>
      */
     protected function currentPasswordRules(): array
     {
@@ -44,6 +44,6 @@ trait PasswordValidationRules
      */
     protected function passwordInputRules(): array
     {
-        return ['bail', 'required', 'string', 'max:255'];
+        return ['bail', 'required', 'string', 'max:'.Config::integer('auth.password_max_length')];
     }
 }

@@ -284,7 +284,8 @@ return Chisel::script(__DIR__)
             $c->files(
                 $paths['confirm_password'],
                 'tests/Feature/Auth/PasswordConfirmationTest.php',
-                'app/Http/Middleware/ValidatePasswordConfirmation.php',
+                'app/Http/Controllers/Auth/PasswordConfirmationController.php',
+                'app/Http/Requests/Auth/ConfirmPasswordRequest.php',
             )->delete();
         },
     )

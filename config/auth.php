@@ -103,6 +103,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Password Input Limit
+    |--------------------------------------------------------------------------
+    |
+    | All password fields share this character limit. New-password validation
+    | and password-manager generation hints also use the same maximum.
+    |
+    */
+
+    'password_max_length' => 255,
+
+    /*
+    |--------------------------------------------------------------------------
     | Password Confirmation Timeout
     |--------------------------------------------------------------------------
     |

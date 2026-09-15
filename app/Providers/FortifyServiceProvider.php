@@ -8,7 +8,7 @@ use App\Actions\Fortify\CreateNewUser;
 /* @end-chisel-registration */
 use App\Actions\Fortify\ResetUserPassword;
 /* @chisel-password-confirmation */
-use App\Http\Middleware\ValidatePasswordConfirmation;
+use App\Http\Controllers\Auth\PasswordConfirmationController;
 /* @end-chisel-password-confirmation */
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Responses\PasswordResetLinkResponse;
@@ -54,7 +54,7 @@ class FortifyServiceProvider extends ServiceProvider
     }
 
     /**
-     * Configure validation and remove confirmation routes when the feature is disabled.
+     * Configure confirmation handling and remove its routes when the feature is disabled.
      */
     private function configureSensitiveActionRoutes(): void
     {
@@ -70,7 +70,7 @@ class FortifyServiceProvider extends ServiceProvider
                 if ($route->getName() === 'password.confirm.store') {
                     $route->middleware('throttle:password-confirmation');
                     /* @chisel-password-confirmation */
-                    $route->middleware(ValidatePasswordConfirmation::class);
+                    $route->uses([PasswordConfirmationController::class, 'store']);
                     /* @end-chisel-password-confirmation */
                 }
 

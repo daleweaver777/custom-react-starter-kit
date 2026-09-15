@@ -5,7 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
-use Laravel\Fortify\Fortify;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class PasswordConfirmationTest extends TestCase
@@ -48,38 +48,59 @@ class PasswordConfirmationTest extends TestCase
             ->assertJson(['confirmed' => true]);
     }
 
-    public function test_validation_precedes_the_custom_fortify_confirmation_callback(): void
+    public function test_browser_confirmation_redirects_to_the_intended_destination(): void
     {
-        $user = User::factory()->create();
-        $this->actingAs($user);
-        $originalCallback = Fortify::$confirmPasswordsUsingCallback;
-        $calls = [];
+        $this->actingAs(User::factory()->create())
+            ->withSession(['url.intended' => route('security.edit')])
+            ->post(route('password.confirm.store'), ['password' => 'password'])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('auth.password_confirmed_at')
+            ->assertRedirect(route('security.edit'));
+    }
 
-        Fortify::confirmPasswordsUsing(function ($confirmedUser, $password) use ($user, &$calls): bool {
-            $this->assertTrue($user->is($confirmedUser));
-            $calls[] = $password;
+    public function test_confirmation_submission_requires_authentication(): void
+    {
+        $this->postJson(route('password.confirm.store'), ['password' => 'password'])
+            ->assertUnauthorized()->assertSessionMissing('auth.password_confirmed_at');
 
-            return $password === 'custom-confirmation';
-        });
+        $this->post(route('password.confirm.store'), ['password' => 'password'])
+            ->assertRedirect(route('login'))->assertSessionMissing('auth.password_confirmed_at');
+    }
 
-        try {
-            foreach ([['invalid'], str_repeat('a', 256)] as $password) {
-                $this->postJson(route('password.confirm.store'), ['password' => $password])
-                    ->assertUnprocessable()->assertJsonValidationErrors('password')
-                    ->assertSessionMissing('auth.password_confirmed_at');
+    public static function invalidPasswords(): array
+    {
+        $cases = [];
+        foreach ([
+            'missing' => [[], 'The password field is required.'],
+            'empty' => [['password' => ''], 'The password field is required.'],
+            'null' => [['password' => null], 'The password field is required.'],
+            'array' => [['password' => ['invalid']], 'The password field must be a string.'],
+            'oversized' => [['password' => str_repeat('a', 256)], 'The password field must not be greater than 255 characters.'],
+            'incorrect' => [['password' => 'wrong'], 'The provided password was incorrect.'],
+        ] as $label => [$input, $message]) {
+            foreach ([false, true] as $json) {
+                $cases[$label.($json ? ' JSON' : ' browser')] = [$input, $message, $json];
             }
-            $this->assertSame([], $calls);
-
-            $this->postJson(route('password.confirm.store'), ['password' => 'wrong'])
-                ->assertUnprocessable()->assertJsonPath('errors.password.0', 'The provided password was incorrect.')
-                ->assertSessionMissing('auth.password_confirmed_at');
-
-            $this->postJson(route('password.confirm.store'), ['password' => 'custom-confirmation'])
-                ->assertCreated()->assertSessionHas('auth.password_confirmed_at');
-
-            $this->assertSame(['wrong', 'custom-confirmation'], $calls);
-        } finally {
-            Fortify::$confirmPasswordsUsingCallback = $originalCallback;
         }
+
+        return $cases;
+    }
+
+    #[DataProvider('invalidPasswords')]
+    public function test_invalid_passwords_do_not_confirm_identity(array $input, string $message, bool $json): void
+    {
+        $this->actingAs(User::factory()->create())->from(route('password.confirm'));
+        $response = $json
+            ? $this->postJson(route('password.confirm.store'), $input)
+            : $this->post(route('password.confirm.store'), $input);
+
+        if ($json) {
+            $response->assertUnprocessable()->assertJsonValidationErrors(['password' => $message]);
+        } else {
+            $response->assertRedirect(route('password.confirm'))
+                ->assertSessionHasErrors(['password' => $message]);
+        }
+        $response->assertSessionMissing('auth.password_confirmed_at')
+            ->assertSessionMissing('_old_input.password');
     }
 }
