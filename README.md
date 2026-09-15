@@ -47,6 +47,12 @@ Profile and Security can be viewed without reauthentication. When **Password con
 
 Changing your email always requires verification at the new address. Your existing sign-in and recovery address stays active until you confirm. Verification links expire after 30 minutes; cancelling, replacing the request, or changing/resetting your password invalidates them. The previous address receives a notice after the change. New-address verification remains enabled even if registration email verification was removed. Set `APP_URL` to the application's trusted public URL and configure mail delivery before using this flow.
 
+## Deployment and Password-Reset Links
+
+**Laravel Cloud:** No application-level fix for password-reset host-header poisoning is required for the Cloud.
+
+**Other hosting, including self-managed servers:** Apply host-header protection before deployment. Configure the web server/proxy and Laravel's [trusted hosts](https://laravel.com/framework/docs/13.x/requests#configuring-trusted-hosts) to reject unapproved hostnames, and ensure forwarded host and scheme headers cannot be supplied unchecked by clients. Password-reset links should use an explicitly trusted HTTPS origin. Setting `APP_URL` alone does not enforce this for Laravel's default reset notification. Verify both rejected unknown hosts and the actual URLs in reset emails through the deployed proxy.
+
 ## Development
 
 `composer run dev` starts the Laravel development server, queue listener, and frontend development server. It also starts the Pail log viewer when the PHP `pcntl` extension is available.
