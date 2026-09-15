@@ -121,11 +121,17 @@ composer run test
 
 This source repository follows upstream's packaging convention: do not commit generated Composer or JavaScript lockfiles, `vendor`, `node_modules`, or generated Wayfinder helpers. After verification, remove untracked generated lockfiles and Wayfinder artifacts, and inspect `git status --short`. The frontend development server or build will regenerate Wayfinder helpers when needed. These source-packaging rules do not apply to applications created from the kit.
 
+Modal dialogs use the shared `Dialog` wrapper, which disables outside-click dismissal by default. Keep Cancel/Close and Escape available so identity confirmation, destructive confirmations, and two-factor setup close deliberately. `AlertDialog` already prevents outside dismissal through Base UI. Navigation sheets use their own dismissal behavior. Preserve this default when updating dialog components from shadcn.
+
 ## Installer Behavior and Testing
 
 The Laravel installer uses `extra.laravel.installer.post-create-project` in `composer.json` to run `install:features`. The same command also appears in Composer's `post-update-cmd` for non-deferred dependency setup. These are distinct from Composer's own `post-create-project-cmd`, which generates the application key and creates the SQLite file if absent. Its migration step waits while `chisel.php` is present: Chisel runs initial migrations only after removing unselected feature migrations, so the generated database matches the selected features. After trimming, ordinary Composer project creation can safely run its migration step again.
 
 Feature selection can retain email verification, registration, two-factor authentication, passkeys, and password confirmation. The installer trims unselected features, removes retained-feature markers, formats PHP, and regenerates Wayfinder helpers. Unless `LARAVEL_INSTALLER_NO_NODE=1`, it also installs JavaScript dependencies, removes unused feature packages, runs the frontend fixer, and builds assets.
+
+The **Password confirmation** selection controls reauthentication for email-change requests, account deletion, passkey/2FA management, and secret/recovery-code access. Security page views never require confirmation. The shared action dialog reuses Fortify confirmation for five minutes by default (`AUTH_PASSWORD_TIMEOUT=300`); the server enforces the same timeout. Preserve Chisel regions in `confirmation-provider.tsx` so removed password/passkey confirmation routes leave no broken frontend imports. Password changes always require the current password, including when confirmation is disabled. Removing confirmation is an explicit security-policy choice: an authenticated session can perform these other sensitive actions without proving identity again.
+
+Pending-address verification and previous-address notification remain independent of the password-confirmation and registration-verification selections. Keep the email-change migration, pending-address checks, notifications, and UI in every generated application. Existing installations need the `pending_email_changes` migration. Pending requests are limited to one row per user and expire after 30 minutes; expired rows cannot authorize changes and are replaced by subsequent requests or removed when the user cancels or deletes their account.
 
 After Chisel's transformations, formatting, and initial migrations succeed, cleanup removes `AGENTS.md`, `README-maintainer.md`, the maintainer-only `InstallerMigrationHookTest`, the feature-install command, and both Chisel scripts. `README.md` remains. The frontend build follows this cleanup when Node steps are enabled.
 
@@ -138,6 +144,31 @@ php artisan install:features --no-interaction --answers='{"auth_features":["regi
 ```
 
 Run one command per copy; successful trimming deletes the installer itself. Verify feature files and markers, confirm `README.md` survives and both maintainer documents are removed, and run the relevant application checks. Also test the no-Node path when changing installation behavior. Passing explicit `--answers` intentionally bypasses the deferral flag, so it must only be used in the disposable installation.
+
+### Password-confirmation regression record (2026-09-15)
+
+The initial policy checks passed with 90 PHP tests and 831 assertions, PHPStan, Pint, frontend lint/format checks, TypeScript, and a production build. Four fresh disposable applications ran Composer installation, the real Chisel command with Node steps enabled, frontend checks/builds, the full Composer test script, route-cache compilation, and packaging checks. Each application had its own dependency directories and SQLite database.
+
+| Installed selection              | Passed tests | Skipped removed-feature tests | Assertions |
+| -------------------------------- | -----------: | ----------------------------: | ---------: |
+| All features                     |           89 |                             0 |        828 |
+| All except password confirmation |           82 |                             3 |        758 |
+| No optional features             |           61 |                             9 |        650 |
+| Password confirmation only       |           67 |                             7 |        701 |
+
+Browser checks on the first two selections used newly registered disposable accounts and log-only mail. They covered direct Security access, email-request confirmation/cancellation, incorrect-password feedback, pending-only email panels, verified-link completion, real TOTP setup, recovery-code viewing/hiding/regeneration, 2FA removal, inline old-password validation and successful password changes, and account deletion. The enabled selection also exercised expired confirmation, recent-confirmation reuse, passkey-registration gating, modal focus restoration, and automatic recovery-code clearing with a temporary 20-second timeout. The shipped timeout remains five minutes. Both disposable accounts were deleted successfully at the end.
+
+`PasswordConfirmationPolicyTest` verifies real signed WebAuthn registration, confirmation, and deletion without mocking the credential validation. Native operating-system authenticator prompts were not automated in the browser check.
+
+Email validation now uses Inertia's built-in Precognition support and Laravel's `EmailChangeRequest` rules before opening identity confirmation. The authenticated validation-only request cannot execute the controller, create pending records, or send mail. Real submissions still require confirmation when enabled and repeat validation. Validation has a separate 30-per-minute user budget; sending retains its six-per-minute user budget.
+
+This follow-up passed 94 source tests (888 assertions), frontend checks/builds, and complete checks in two new Chisel installations with password confirmation selected and unselected. Paired browser checks showed Laravel's required, email-format, and uniqueness messages before confirmation and successful pending requests after valid input. Regression tests cover validation without side effects, authentication, protection against forged Precognition headers on other routes, and independent send budgets. Repeat these cases when editing `ConfirmedForm`.
+
+Password confirmation now validates required/string input on the server and displays Laravel/Fortify's returned password error in the modal. Passkey names use the package's existing registration rules through Precognition before confirmation or authenticator registration. Name checks neither consume registration options nor authorize sensitive actions, and use a separate 30-per-minute validation budget. Chisel removes the password validation middleware when confirmation is omitted.
+
+The password/passkey validation follow-up passed 97 source tests (999 assertions), frontend checks, TypeScript, PHPStan, Pint, and production builds. Four fresh Chisel installations passed all application and packaging checks: all features (96 passed, 996 assertions), confirmation omitted (88 passed, 4 skipped, 904 assertions), no optional features (65 passed, 12 skipped, 705 assertions), and confirmation only (72 passed, 9 skipped, 776 assertions). Browser checks verified inline required/maximum-length passkey name errors with confirmation selected and unselected, valid-name gating when enabled, Laravel's blank/incorrect-password errors, cancellation, and successful password confirmation followed by an email-change request. Signed WebAuthn integration tests continue to verify actual registration, confirmation, and deletion; native authenticator enrollment is not automated.
+
+For future changes, repeat the paired all-features/all-except-password-confirmation browser checks in freshly trimmed applications, and run the minimal/mixed selections to catch references to removed routes, components, or model capabilities. Never run Chisel in this source checkout.
 
 ## Publishing
 

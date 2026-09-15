@@ -1,5 +1,6 @@
 import { useHttp } from '@inertiajs/react';
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { useConfirmation } from '@/hooks/use-confirmation';
 import { qrCode, recoveryCodes, secretKey } from '@/routes/two-factor';
 
 export type UseTwoFactorAuthReturn = {
@@ -14,18 +15,22 @@ export type UseTwoFactorAuthReturn = {
     fetchQrCode: () => Promise<void>;
     fetchSetupKey: () => Promise<void>;
     fetchSetupData: () => Promise<void>;
-    fetchRecoveryCodes: () => Promise<void>;
+    fetchRecoveryCodes: () => Promise<boolean>;
+    clearRecoveryCodes: () => void;
 };
 
 export const OTP_MAX_LENGTH = 6;
 
 export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
     const { submit } = useHttp();
+    const { confirm } = useConfirmation();
 
     const [qrCodeSvg, setQrCodeSvg] = useState<string | null>(null);
     const [manualSetupKey, setManualSetupKey] = useState<string | null>(null);
     const [recoveryCodesList, setRecoveryCodesList] = useState<string[]>([]);
     const [errors, setErrors] = useState<string[]>([]);
+    const generation = useRef(0);
+    const recoveryGeneration = useRef(0);
     const setupRequest = useRef<Promise<void> | null>(null);
 
     const hasSetupData = qrCodeSvg !== null && manualSetupKey !== null;
@@ -34,27 +39,36 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
         setErrors([]);
     };
 
-    const clearSetupData = (): void => {
+    const clearSetupData = useCallback((): void => {
+        generation.current++;
         setManualSetupKey(null);
         setQrCodeSvg(null);
         setErrors([]);
-    };
+    }, []);
 
-    const clearTwoFactorAuthData = (): void => {
+    const clearTwoFactorAuthData = useCallback((): void => {
+        generation.current++;
+        recoveryGeneration.current++;
         setManualSetupKey(null);
         setQrCodeSvg(null);
         setErrors([]);
         setRecoveryCodesList([]);
-    };
+    }, []);
+
+    const clearRecoveryCodes = useCallback(() => {
+        recoveryGeneration.current++;
+        setRecoveryCodesList([]);
+    }, []);
 
     const fetchQrCode = async (): Promise<void> => {
+        const requestGeneration = generation.current;
         try {
             const { svg } = (await submit(qrCode())) as {
                 svg: string;
                 url: string;
             };
 
-            setQrCodeSvg(svg);
+            if (requestGeneration === generation.current) setQrCodeSvg(svg);
         } catch {
             setErrors((prev) => [
                 ...prev,
@@ -65,12 +79,14 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
     };
 
     const fetchSetupKey = async (): Promise<void> => {
+        const requestGeneration = generation.current;
         try {
             const { secretKey: key } = (await submit(secretKey())) as {
                 secretKey: string;
             };
 
-            setManualSetupKey(key);
+            if (requestGeneration === generation.current)
+                setManualSetupKey(key);
         } catch {
             setErrors((prev) => [
                 ...prev,
@@ -80,17 +96,23 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
         }
     };
 
-    const fetchRecoveryCodes = async (): Promise<void> => {
+    const fetchRecoveryCodes = async (): Promise<boolean> => {
+        clearRecoveryCodes();
+        if (!(await confirm())) return false;
+        const requestGeneration = recoveryGeneration.current;
         try {
             setErrors([]);
             const codes = (await submit(recoveryCodes())) as string[];
+            if (requestGeneration !== recoveryGeneration.current) return false;
             setRecoveryCodesList(codes);
+            return true;
         } catch {
             setErrors((prev) => [
                 ...prev,
                 'Unable to load recovery codes. Please try again.',
             ]);
             setRecoveryCodesList([]);
+            return false;
         }
     };
 
@@ -122,5 +144,6 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
         fetchSetupKey,
         fetchSetupData,
         fetchRecoveryCodes,
+        clearRecoveryCodes,
     };
 };

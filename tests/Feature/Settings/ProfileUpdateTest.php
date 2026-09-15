@@ -29,7 +29,6 @@ class ProfileUpdateTest extends TestCase
             ->actingAs($user)
             ->patch(route('profile.update'), [
                 'name' => 'Test User',
-                'email' => 'test@example.com',
             ]);
 
         $response
@@ -39,8 +38,7 @@ class ProfileUpdateTest extends TestCase
         $user->refresh();
 
         $this->assertSame('Test User', $user->name);
-        $this->assertSame('test@example.com', $user->email);
-        $this->assertNull($user->email_verified_at);
+        $this->assertNotNull($user->email_verified_at);
     }
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()
@@ -51,7 +49,6 @@ class ProfileUpdateTest extends TestCase
             ->actingAs($user)
             ->patch(route('profile.update'), [
                 'name' => 'Test User',
-                'email' => $user->email,
             ]);
 
         $response
@@ -67,9 +64,8 @@ class ProfileUpdateTest extends TestCase
 
         $response = $this
             ->actingAs($user)
-            ->delete(route('profile.destroy'), [
-                'password' => 'password',
-            ]);
+            ->withSession(['auth.password_confirmed_at' => time()])
+            ->delete(route('profile.destroy'));
 
         $response
             ->assertSessionHasNoErrors()
@@ -79,21 +75,17 @@ class ProfileUpdateTest extends TestCase
         $this->assertNull($user->fresh());
     }
 
-    public function test_correct_password_must_be_provided_to_delete_account()
+    public function test_deletion_requires_confirmation_only_when_the_option_is_enabled(): void
     {
         $user = User::factory()->create();
+        $response = $this->actingAs($user)->deleteJson(route('profile.destroy'));
 
-        $response = $this
-            ->actingAs($user)
-            ->from(route('profile.edit'))
-            ->delete(route('profile.destroy'), [
-                'password' => 'wrong-password',
-            ]);
-
-        $response
-            ->assertSessionHasErrors('password')
-            ->assertRedirect(route('profile.edit'));
-
-        $this->assertNotNull($user->fresh());
+        if (config('fortify.password_confirmation')) {
+            $response->assertStatus(423);
+            $this->assertNotNull($user->fresh());
+        } else {
+            $response->assertRedirect(route('home'));
+            $this->assertNull($user->fresh());
+        }
     }
 }

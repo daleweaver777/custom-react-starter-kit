@@ -1,20 +1,9 @@
-import { Form } from '@inertiajs/react';
-import { ShieldCheck, ShieldOff } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import TwoFactorRecoveryCodes from '@/components/two-factor-recovery-codes';
 import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogMedia,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import ConfirmedForm from '@/components/confirmed-form';
+import { useConfirmation } from '@/hooks/use-confirmation';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -34,6 +23,11 @@ export type Props = {
 };
 
 export default function ManageTwoFactor(props: Props) {
+    const {
+        confirm,
+        enabled: confirmationEnabled,
+        expiresAt,
+    } = useConfirmation();
     const requiresConfirmation = props.requiresConfirmation ?? false;
     const twoFactorEnabled = props.twoFactorEnabled ?? false;
 
@@ -43,6 +37,7 @@ export default function ManageTwoFactor(props: Props) {
         manualSetupKey,
         clearSetupData,
         clearTwoFactorAuthData,
+        clearRecoveryCodes,
         fetchSetupData,
         recoveryCodesList,
         fetchRecoveryCodes,
@@ -58,6 +53,23 @@ export default function ManageTwoFactor(props: Props) {
 
         prevTwoFactorEnabled.current = twoFactorEnabled;
     }, [twoFactorEnabled, clearTwoFactorAuthData]);
+
+    useEffect(() => {
+        if (!confirmationEnabled) return;
+        if (!expiresAt) {
+            setShowSetupModal(false);
+            clearTwoFactorAuthData();
+            return;
+        }
+        const timer = window.setTimeout(
+            () => {
+                setShowSetupModal(false);
+                clearTwoFactorAuthData();
+            },
+            Math.max(0, expiresAt - Date.now()),
+        );
+        return () => window.clearTimeout(timer);
+    }, [confirmationEnabled, expiresAt, clearTwoFactorAuthData]);
 
     if (!(props.canManageTwoFactor ?? false)) {
         return null;
@@ -83,62 +95,40 @@ export default function ManageTwoFactor(props: Props) {
 
                 <CardFooter className="justify-end">
                     {twoFactorEnabled ? (
-                        <AlertDialog>
-                            <AlertDialogTrigger
-                                render={<Button variant="destructive" />}
-                            >
-                                Disable 2FA
-                            </AlertDialogTrigger>
-
-                            <AlertDialogContent size="sm">
-                                <Form
-                                    noValidate
-                                    {...disable.form()}
-                                    className="grid gap-4"
+                        <ConfirmedForm
+                            {...disable.form()}
+                            confirmation={{
+                                title: 'Disable 2FA?',
+                                description:
+                                    'Your account will no longer be protected by a second factor. Re-enabling starts setup from scratch with a new secret and new recovery codes.',
+                                actionLabel: 'Disable',
+                                destructive: true,
+                                always: true,
+                            }}
+                        >
+                            {({ processing }) => (
+                                <Button
+                                    type="submit"
+                                    variant="destructive"
+                                    disabled={processing}
                                 >
-                                    {({ processing }) => (
-                                        <>
-                                            <AlertDialogHeader>
-                                                <AlertDialogMedia className="bg-destructive/10 text-destructive">
-                                                    <ShieldOff />
-                                                </AlertDialogMedia>
-                                                <AlertDialogTitle>
-                                                    Disable 2FA?
-                                                </AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    Your account will no longer
-                                                    be protected by a second
-                                                    factor. Re-enabling starts
-                                                    setup from scratch with a
-                                                    new secret and new recovery
-                                                    codes.
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>
-                                                    Cancel
-                                                </AlertDialogCancel>
-                                                <AlertDialogAction
-                                                    type="submit"
-                                                    variant="destructive"
-                                                    disabled={processing}
-                                                >
-                                                    Disable
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </>
-                                    )}
-                                </Form>
-                            </AlertDialogContent>
-                        </AlertDialog>
+                                    Disable 2FA
+                                </Button>
+                            )}
+                        </ConfirmedForm>
                     ) : hasSetupData ? (
-                        <Button onClick={() => setShowSetupModal(true)}>
+                        <Button
+                            onClick={() => {
+                                void confirm().then((confirmed) => {
+                                    if (confirmed) setShowSetupModal(true);
+                                });
+                            }}
+                        >
                             <ShieldCheck data-icon="inline-start" />
                             Continue setup
                         </Button>
                     ) : (
-                        <Form
+                        <ConfirmedForm
                             noValidate
                             {...enable.form()}
                             onSuccess={() => setShowSetupModal(true)}
@@ -148,7 +138,7 @@ export default function ManageTwoFactor(props: Props) {
                                     Enable 2FA
                                 </Button>
                             )}
-                        </Form>
+                        </ConfirmedForm>
                     )}
                 </CardFooter>
             </Card>
@@ -158,6 +148,7 @@ export default function ManageTwoFactor(props: Props) {
                     recoveryCodesList={recoveryCodesList}
                     fetchRecoveryCodes={fetchRecoveryCodes}
                     errors={errors}
+                    clearRecoveryCodes={clearRecoveryCodes}
                 />
             )}
 

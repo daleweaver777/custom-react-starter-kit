@@ -336,9 +336,7 @@ export default function TwoFactorSetupModal({
     }
 
     const resetModalState = () => {
-        if (twoFactorEnabled) {
-            clearSetupData();
-        }
+        clearSetupData();
 
         setShowVerificationStep(false);
     };

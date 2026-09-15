@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Models\PendingEmailChange;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,12 @@ class ProfileController extends Controller
         return Inertia::render('settings/profile', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            'pendingEmail' => PendingEmailChange::query()
+                ->where('user_id', $request->user()->id)
+                ->where('expires_at', '>', now())
+                ->where('password_fingerprint', hash('sha256', $request->user()->getAuthPassword()))
+                ->where('original_email', $request->user()->email)
+                ->value('email'),
         ]);
     }
 
@@ -30,13 +37,7 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
-
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
-        }
-
-        $request->user()->save();
+        $request->user()->update($request->safe()->only('name'));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Profile updated.')]);
 

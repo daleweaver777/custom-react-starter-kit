@@ -48,8 +48,6 @@ class SecurityController extends Controller
 
         /* @chisel-2fa */
         if (Features::canManageTwoFactorAuthentication()) {
-            $request->ensureStateIsValid();
-
             $props['twoFactorEnabled'] = $request->user()->hasEnabledTwoFactorAuthentication();
             $props['requiresConfirmation'] = Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm');
         }
@@ -72,6 +70,7 @@ class SecurityController extends Controller
 
         // Rotate this session and refresh its remembered login; middleware updates its fingerprint.
         Auth::login($user, $request->hasCookie(Auth::getRecallerName()));
+        $request->session()->forget('auth.password_confirmed_at');
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Password updated.')]);
 

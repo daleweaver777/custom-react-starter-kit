@@ -41,6 +41,15 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'passwordConfirmation' => [
+                'enabled' => (bool) config('fortify.password_confirmation', true),
+                'timeout' => (int) config('auth.password_timeout', 300),
+                'confirmedUntil' => config('fortify.password_confirmation', true) && $request->session()->has('auth.password_confirmed_at')
+                    ? ((int) $request->session()->get('auth.password_confirmed_at') + (int) config('auth.password_timeout', 300)) * 1000
+                    : 0,
+                'statusUrl' => config('fortify.password_confirmation', true) ? route('password.confirmation', [], false) : null,
+                'submitUrl' => config('fortify.password_confirmation', true) ? route('password.confirm.store', [], false) : null,
+            ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

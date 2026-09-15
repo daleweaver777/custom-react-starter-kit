@@ -213,6 +213,7 @@ return Chisel::script(__DIR__)
                 $paths['security'],
                 $paths['login'],
                 $paths['confirm_password'],
+                'resources/js/components/confirmation-provider.tsx',
             )->removeSectionMarkers('passkeys');
         },
         else: function (Chisel $c) use ($paths) {
@@ -233,6 +234,7 @@ return Chisel::script(__DIR__)
                 $paths['security'],
                 $paths['login'],
                 $paths['confirm_password'],
+                'resources/js/components/confirmation-provider.tsx',
             )->removeSection('passkeys');
 
             chiselRemoveNpmPackages($c, '@laravel/passkeys');
@@ -264,6 +266,7 @@ return Chisel::script(__DIR__)
                 'app/Providers/FortifyServiceProvider.php',
                 'routes/settings.php',
                 'tests/Feature/Settings/SecurityTest.php',
+                'resources/js/components/confirmation-provider.tsx',
             )->removeSectionMarkers('password-confirmation');
         },
         else: function (Chisel $c) use ($paths) {
@@ -275,11 +278,13 @@ return Chisel::script(__DIR__)
                 'app/Providers/FortifyServiceProvider.php',
                 'routes/settings.php',
                 'tests/Feature/Settings/SecurityTest.php',
+                'resources/js/components/confirmation-provider.tsx',
             )->removeSection('password-confirmation');
 
             $c->files(
                 $paths['confirm_password'],
                 'tests/Feature/Auth/PasswordConfirmationTest.php',
+                'app/Http/Middleware/ValidatePasswordConfirmation.php',
             )->delete();
         },
     )

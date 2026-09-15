@@ -43,6 +43,10 @@ Authentication includes login and password reset. Registration, email verificati
 
 Changing a password signs out other browser sessions and revokes their remembered logins. The browser making the change stays signed in with a new session ID and CSRF token. Resetting a forgotten password requires all browsers to sign in again. Revoked sessions are rejected on their next request; this works with any session storage driver.
 
+Profile and Security can be viewed without reauthentication. When **Password confirmation** was selected during installation, changing email, deleting the account, managing passkeys or two-factor authentication, and viewing recovery codes require recent confirmation through a modal. A password or an existing passkey can confirm identity. Confirmation lasts five minutes by default; configure `AUTH_PASSWORD_TIMEOUT` in seconds to change it. Recovery codes are cleared when hidden or when confirmation expires. Without that installer option, these actions do not request a password, although destructive actions still ask for confirmation. **Changing your password always requires the current password**, regardless of the installer option or recent confirmation.
+
+Changing your email always requires verification at the new address. Your existing sign-in and recovery address stays active until you confirm. Verification links expire after 30 minutes; cancelling, replacing the request, or changing/resetting your password invalidates them. The previous address receives a notice after the change. New-address verification remains enabled even if registration email verification was removed. Set `APP_URL` to the application's trusted public URL and configure mail delivery before using this flow.
+
 ## Development
 
 `composer run dev` starts the Laravel development server, queue listener, and frontend development server. It also starts the Pail log viewer when the PHP `pcntl` extension is available.

@@ -14,6 +14,7 @@ type Props = {
     label?: string;
     loadingLabel?: string;
     separator?: string;
+    onVerified?: () => void;
 };
 
 export default function PasskeyVerify({
@@ -21,6 +22,7 @@ export default function PasskeyVerify({
     label,
     loadingLabel,
     separator,
+    onVerified,
 }: Props = {}) {
     const { verify, isLoading, error, isSupported } = usePasskeyVerify({
         ...(routes && {
@@ -30,7 +32,11 @@ export default function PasskeyVerify({
             },
         }),
         onSuccess: (response) => {
-            router.visit(response.redirect ?? '/dashboard');
+            if (onVerified) {
+                onVerified();
+            } else {
+                router.visit(response.redirect ?? '/dashboard');
+            }
         },
     });
 

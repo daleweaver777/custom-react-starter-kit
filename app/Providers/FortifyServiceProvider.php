@@ -7,7 +7,13 @@ namespace App\Providers;
 use App\Actions\Fortify\CreateNewUser;
 /* @end-chisel-registration */
 use App\Actions\Fortify\ResetUserPassword;
+/* @chisel-password-confirmation */
+use App\Http\Middleware\ValidatePasswordConfirmation;
+/* @end-chisel-password-confirmation */
 use Illuminate\Cache\RateLimiting\Limit;
+/* @chisel-passkeys */
+use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
+/* @end-chisel-passkeys */
 use Illuminate\Http\Request;
 use Illuminate\Routing\RouteCollection;
 use Illuminate\Routing\Router;
@@ -37,15 +43,15 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
-        $this->configurePasswordConfirmationRoutes();
+        $this->configureSensitiveActionRoutes();
     }
 
     /**
-     * Remove Fortify's unconditional confirmation routes when the feature is disabled.
+     * Configure validation and remove confirmation routes when the feature is disabled.
      */
-    private function configurePasswordConfirmationRoutes(): void
+    private function configureSensitiveActionRoutes(): void
     {
-        if (config('fortify.password_confirmation', true) || $this->app->routesAreCached()) {
+        if ($this->app->routesAreCached()) {
             return;
         }
 
@@ -54,10 +60,25 @@ class FortifyServiceProvider extends ServiceProvider
             $routes = new RouteCollection;
 
             foreach ($router->getRoutes()->getRoutes() as $route) {
-                if (! in_array($route->getName(), [
+                if ($route->getName() === 'password.confirm.store') {
+                    $route->middleware('throttle:password-confirmation');
+                    /* @chisel-password-confirmation */
+                    $route->middleware(ValidatePasswordConfirmation::class);
+                    /* @end-chisel-password-confirmation */
+                }
+
+                /* @chisel-passkeys */
+                if ($route->getName() === 'passkey.store') {
+                    $route->middleware(HandlePrecognitiveRequests::class);
+                }
+                /* @end-chisel-passkeys */
+
+                if (config('fortify.password_confirmation', true) || ! in_array($route->getName(), [
                     'password.confirm',
                     'password.confirm.store',
                     'password.confirmation',
+                    'passkey.confirm-options',
+                    'passkey.confirm',
                 ], true)) {
                     $routes->add($route);
                 }
@@ -126,6 +147,15 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function configureRateLimiting(): void
     {
+        RateLimiter::for('email-change', fn (Request $request) => $request->isPrecognitive()
+            ? Limit::perMinute(30)->by('validation:'.$request->user()?->getAuthIdentifier())
+            : Limit::perMinute(6)->by('submission:'.$request->user()?->getAuthIdentifier()));
+
+        RateLimiter::for('password-confirmation', fn (Request $request) => [
+            Limit::perMinute(5)->by('user:'.$request->user()?->getAuthIdentifier()),
+            Limit::perMinute(30)->by('ip:'.$request->ip()),
+        ]);
+
         /* @chisel-2fa */
         RateLimiter::for('two-factor', function (Request $request) {
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
@@ -140,6 +170,10 @@ class FortifyServiceProvider extends ServiceProvider
 
         /* @chisel-passkeys */
         RateLimiter::for('passkeys', function (Request $request) {
+            if ($request->isPrecognitive()) {
+                return Limit::perMinute(30)->by('validation:'.$request->user()?->getAuthIdentifier());
+            }
+
             return Limit::perMinute(10)->by(
                 ($request->input('credential.id') ?: $request->session()->getId()).'|'.$request->ip(),
             );

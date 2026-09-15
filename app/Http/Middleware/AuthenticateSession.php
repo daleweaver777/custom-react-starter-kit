@@ -9,11 +9,11 @@ use Illuminate\Session\Middleware\AuthenticateSession as BaseAuthenticateSession
 class AuthenticateSession extends BaseAuthenticateSession
 {
     /**
-    * Store the password fingerprint on the successful login response.
-    *
-    * Laravel normally stores it on the next authenticated request. Saving
-    * it here ensures a password change can revoke this session even if
-    * the browser has not yet followed the login redirect.
+     * Store the password fingerprint on the successful login response.
+     *
+     * Laravel normally stores it on the next authenticated request. Saving
+     * it here ensures a password change can revoke this session even if
+     * the browser has not yet followed the login redirect.
      *
      * @param  Request  $request
      */

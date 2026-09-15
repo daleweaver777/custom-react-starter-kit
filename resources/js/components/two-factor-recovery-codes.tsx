@@ -1,19 +1,7 @@
-import { Form } from '@inertiajs/react';
 import { Eye, EyeOff, RefreshCw } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AlertError from '@/components/alert-error';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogMedia,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import ConfirmedForm from '@/components/confirmed-form';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -23,12 +11,12 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { regenerateRecoveryCodes } from '@/routes/two-factor';
 
 type Props = {
     recoveryCodesList: string[];
-    fetchRecoveryCodes: () => Promise<void>;
+    fetchRecoveryCodes: () => Promise<boolean>;
+    clearRecoveryCodes: () => void;
     errors: string[];
 };
 
@@ -38,38 +26,41 @@ export default function TwoFactorRecoveryCodes({
     recoveryCodesList,
     fetchRecoveryCodes,
     errors,
+    clearRecoveryCodes,
 }: Props) {
     const [codesAreVisible, setCodesAreVisible] = useState<boolean>(false);
-    const [isRegenerateOpen, setIsRegenerateOpen] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState(false);
     const loadingRef = useRef(false);
     const codesSectionRef = useRef<HTMLUListElement | null>(null);
     const canRegenerateCodes = recoveryCodesList.length > 0 && codesAreVisible;
 
-    const toggleCodesVisibility = async () => {
-        if (loadingRef.current) {
-            return;
-        }
+    useEffect(() => {
+        if (!recoveryCodesList.length) setCodesAreVisible(false);
+    }, [recoveryCodesList]);
 
-        if (codesAreVisible) {
-            setCodesAreVisible(false);
-            return;
-        }
+    const loadCodes = async () => {
+        if (loadingRef.current) return;
 
-        setCodesAreVisible(true);
-
-        if (!recoveryCodesList.length) {
-            loadingRef.current = true;
-            setIsLoading(true);
-            await fetchRecoveryCodes().finally(() => {
-                loadingRef.current = false;
-                setIsLoading(false);
-            });
-        }
+        loadingRef.current = true;
+        setIsLoading(true);
+        const loaded = await fetchRecoveryCodes().finally(() => {
+            loadingRef.current = false;
+            setIsLoading(false);
+        });
+        setCodesAreVisible(loaded);
 
         requestAnimationFrame(() => {
             codesSectionRef.current?.scrollIntoView({ block: 'nearest' });
         });
+    };
+
+    const toggleCodesVisibility = () => {
+        if (codesAreVisible) {
+            clearRecoveryCodes();
+            setCodesAreVisible(false);
+        } else {
+            void loadCodes();
+        }
     };
 
     const RecoveryCodeIconComponent = codesAreVisible ? EyeOff : Eye;
@@ -84,121 +75,69 @@ export default function TwoFactorRecoveryCodes({
                 </CardDescription>
             </CardHeader>
 
+            {errors.length > 0 && (
+                <CardContent>
+                    <AlertError errors={errors} />
+                </CardContent>
+            )}
+
             {codesAreVisible && (
                 <CardContent id={RECOVERY_CODES_ID}>
                     <div className="flex flex-col gap-3">
-                        {errors?.length ? (
-                            <AlertError errors={errors} />
-                        ) : (
-                            <>
-                                <ul
-                                    ref={codesSectionRef}
-                                    className="bg-muted grid gap-1 rounded-lg p-3 font-mono text-sm"
-                                    aria-label="Recovery codes"
-                                >
-                                    {recoveryCodesList.length ? (
-                                        recoveryCodesList.map((code) => (
-                                            <li key={code}>{code}</li>
-                                        ))
-                                    ) : (
-                                        <li
-                                            className="flex flex-col gap-2"
-                                            aria-label="Loading recovery codes"
-                                        >
-                                            {Array.from(
-                                                { length: 8 },
-                                                (_, index) => (
-                                                    <Skeleton
-                                                        key={index}
-                                                        className="bg-muted-foreground/20 h-4"
-                                                        aria-hidden="true"
-                                                    />
-                                                ),
-                                            )}
-                                        </li>
-                                    )}
-                                </ul>
-
-                                <p
-                                    id="regenerate-warning"
-                                    className="text-muted-foreground text-sm select-none"
-                                >
-                                    Each recovery code can be used once to
-                                    access your account and will be removed
-                                    after use. If you need more, click{' '}
-                                    <span className="font-medium">
-                                        Regenerate codes
-                                    </span>{' '}
-                                    below.
-                                </p>
-                            </>
-                        )}
+                        <ul
+                            ref={codesSectionRef}
+                            className="bg-muted grid gap-1 rounded-lg p-3 font-mono text-sm"
+                            aria-label="Recovery codes"
+                        >
+                            {recoveryCodesList.map((code) => (
+                                <li key={code}>{code}</li>
+                            ))}
+                        </ul>
+                        <p
+                            id="regenerate-warning"
+                            className="text-muted-foreground text-sm select-none"
+                        >
+                            Each recovery code can be used once to access your
+                            account and will be removed after use. If you need
+                            more, click{' '}
+                            <span className="font-medium">
+                                Regenerate codes
+                            </span>{' '}
+                            below.
+                        </p>
                     </div>
                 </CardContent>
             )}
 
             <CardFooter className="flex-wrap justify-end gap-3">
                 {canRegenerateCodes && (
-                    <AlertDialog
-                        open={isRegenerateOpen}
-                        onOpenChange={setIsRegenerateOpen}
+                    <ConfirmedForm
+                        {...regenerateRecoveryCodes.form()}
+                        options={{ preserveScroll: true }}
+                        confirmation={{
+                            title: 'Regenerate recovery codes?',
+                            description:
+                                'Your current codes will stop working. Any copy you have saved elsewhere becomes unusable.',
+                            actionLabel: 'Regenerate',
+                            destructive: true,
+                            always: true,
+                        }}
+                        onSuccess={() => {
+                            void loadCodes();
+                        }}
                     >
-                        <AlertDialogTrigger
-                            render={
-                                <Button
-                                    variant="secondary"
-                                    aria-describedby="regenerate-warning"
-                                />
-                            }
-                        >
-                            <RefreshCw data-icon="inline-start" />
-                            Regenerate codes
-                        </AlertDialogTrigger>
-
-                        <AlertDialogContent size="sm">
-                            <Form
-                                noValidate
-                                {...regenerateRecoveryCodes.form()}
-                                options={{ preserveScroll: true }}
-                                onSuccess={() => {
-                                    setIsRegenerateOpen(false);
-                                    void fetchRecoveryCodes();
-                                }}
-                                className="grid gap-4"
+                        {({ processing }) => (
+                            <Button
+                                type="submit"
+                                variant="secondary"
+                                disabled={processing}
+                                aria-describedby="regenerate-warning"
                             >
-                                {({ processing }) => (
-                                    <>
-                                        <AlertDialogHeader>
-                                            <AlertDialogMedia className="bg-destructive/10 text-destructive">
-                                                <RefreshCw />
-                                            </AlertDialogMedia>
-                                            <AlertDialogTitle>
-                                                Regenerate recovery codes?
-                                            </AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Your current codes will stop
-                                                working. Any copy you have saved
-                                                elsewhere becomes unusable.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>
-                                                Cancel
-                                            </AlertDialogCancel>
-                                            <AlertDialogAction
-                                                type="submit"
-                                                variant="destructive"
-                                                disabled={processing}
-                                            >
-                                                Regenerate
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </>
-                                )}
-                            </Form>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                                <RefreshCw data-icon="inline-start" />
+                                Regenerate codes
+                            </Button>
+                        )}
+                    </ConfirmedForm>
                 )}
 
                 <Button

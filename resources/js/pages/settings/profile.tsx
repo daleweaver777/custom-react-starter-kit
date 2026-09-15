@@ -5,6 +5,7 @@ import { Link } from '@inertiajs/react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 /* @end-chisel-email-verification */
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
+import ChangeEmail from '@/components/change-email';
 import DeleteUser from '@/components/delete-user';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ import { send } from '@/routes/verification';
 
 type PageProps = {
     auth: Auth;
+    pendingEmail: string | null;
 };
 
 export default function Profile(
@@ -42,7 +44,7 @@ export default function Profile(
 ) {
     const formId = useId();
 
-    const { auth } = usePage<PageProps>().props;
+    const { auth, pendingEmail } = usePage<PageProps>().props;
 
     return (
         <>
@@ -51,9 +53,7 @@ export default function Profile(
             <Card>
                 <CardHeader>
                     <CardTitle>Profile</CardTitle>
-                    <CardDescription>
-                        Update your name and email address
-                    </CardDescription>
+                    <CardDescription>Update your name</CardDescription>
                 </CardHeader>
 
                 <Form
@@ -100,40 +100,6 @@ export default function Profile(
                                         <InputError
                                             id="name-error"
                                             message={errors.name}
-                                        />
-                                    </Field>
-
-                                    <Field data-invalid={!!errors.email}>
-                                        <FieldLabel htmlFor="email">
-                                            Email address
-                                        </FieldLabel>
-
-                                        <Input
-                                            id="email"
-                                            type="email"
-                                            defaultValue={auth.user.email}
-                                            name="email"
-                                            onChange={() =>
-                                                clearFormErrors(
-                                                    errors,
-                                                    clearErrors,
-                                                    'email',
-                                                )
-                                            }
-                                            required
-                                            autoComplete="username"
-                                            placeholder="Email address"
-                                            aria-invalid={!!errors.email}
-                                            aria-describedby={
-                                                errors.email
-                                                    ? 'email-error'
-                                                    : undefined
-                                            }
-                                        />
-
-                                        <InputError
-                                            id="email-error"
-                                            message={errors.email}
                                         />
                                     </Field>
                                 </FieldGroup>
@@ -183,6 +149,8 @@ export default function Profile(
                     )}
                 </Form>
             </Card>
+
+            <ChangeEmail email={auth.user.email} pendingEmail={pendingEmail} />
 
             <DeleteUser />
         </>

@@ -1,17 +1,6 @@
 import { KeyRound, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogMedia,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import { useConfirmation } from '@/hooks/use-confirmation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { Passkey } from '@/types/auth';
@@ -22,9 +11,20 @@ type Props = {
 };
 
 export default function PasskeyItem({ passkey, onDelete }: Props) {
+    const { confirm } = useConfirmation();
     const [isDeleting, setIsDeleting] = useState(false);
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
+        if (
+            !(await confirm({
+                title: 'Remove passkey?',
+                description: `The "${passkey.name}" passkey will be removed and you will no longer be able to use it to sign in.`,
+                actionLabel: 'Remove',
+                destructive: true,
+                always: true,
+            }))
+        )
+            return;
         setIsDeleting(true);
         onDelete(passkey.id, () => setIsDeleting(false));
     };
@@ -60,45 +60,19 @@ export default function PasskeyItem({ passkey, onDelete }: Props) {
                 </div>
             </div>
 
-            <AlertDialog>
-                <AlertDialogTrigger
-                    render={
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            aria-label={`Remove ${passkey.name}`}
-                            className="text-destructive hover:bg-destructive/10 hover:text-destructive [--focus-ring-color:var(--destructive)]"
-                        />
-                    }
-                >
-                    <Trash2 data-icon="inline-start" />
-                    <span className="sr-only">Remove</span>
-                </AlertDialogTrigger>
-
-                <AlertDialogContent size="sm">
-                    <AlertDialogHeader>
-                        <AlertDialogMedia className="bg-destructive/10 text-destructive">
-                            <Trash2 />
-                        </AlertDialogMedia>
-                        <AlertDialogTitle>Remove passkey?</AlertDialogTitle>
-                        <AlertDialogDescription className="wrap-anywhere">
-                            The "{passkey.name}" passkey will be removed and you
-                            will no longer be able to use it to sign in.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            variant="destructive"
-                            onClick={handleDelete}
-                            disabled={isDeleting}
-                        >
-                            Remove
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <Button
+                variant="ghost"
+                size="sm"
+                aria-label={`Remove ${passkey.name}`}
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive [--focus-ring-color:var(--destructive)]"
+                onClick={() => {
+                    void handleDelete();
+                }}
+                disabled={isDeleting}
+            >
+                <Trash2 data-icon="inline-start" />
+                <span className="sr-only">Remove</span>
+            </Button>
         </div>
     );
 }
