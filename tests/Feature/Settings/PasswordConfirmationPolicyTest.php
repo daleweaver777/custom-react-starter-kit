@@ -83,7 +83,7 @@ class PasswordConfirmationPolicyTest extends TestCase
             $this->markTestSkipped('Confirmation removed.');
         }
         $this->actingAs(User::factory()->create());
-        foreach ([['', 'The password field is required.'], [[], 'The password field is required.'], [['invalid'], 'The password field must be a string.'], ['wrong', 'The provided password was incorrect.']] as [$password, $message]) {
+        foreach ([['', 'The password field is required.'], [[], 'The password field is required.'], [['invalid'], 'The password field must be a string.'], ['wrong', 'The password is incorrect.']] as [$password, $message]) {
             $this->postJson(route('password.confirm.store'), ['password' => $password])
                 ->assertUnprocessable()->assertJsonPath('errors.password.0', $message)
                 ->assertSessionMissing('auth.password_confirmed_at')->assertSessionMissing('_old_input.password');

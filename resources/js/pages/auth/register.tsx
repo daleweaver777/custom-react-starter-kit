@@ -137,7 +137,6 @@ export default function Register({ passwordRules }: Props) {
                                         clearFormErrors(
                                             errors,
                                             clearErrors,
-                                            'password',
                                             'password_confirmation',
                                         )
                                     }

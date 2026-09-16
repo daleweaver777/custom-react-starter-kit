@@ -25,9 +25,14 @@ import PasskeyVerify from '@/components/passkey-verify';
 type Props = {
     status?: string;
     canResetPassword: boolean;
+    failedAuthenticationMessage: string;
 };
 
-export default function Login({ status, canResetPassword }: Props) {
+export default function Login({
+    status,
+    canResetPassword,
+    failedAuthenticationMessage,
+}: Props) {
     const formId = useId();
 
     return (
@@ -88,13 +93,23 @@ export default function Login({ status, canResetPassword }: Props) {
                                 <PasswordInput
                                     id="password"
                                     name="password"
-                                    onChange={() =>
+                                    onChange={() => {
                                         clearFormErrors(
                                             errors,
                                             clearErrors,
                                             'password',
-                                        )
-                                    }
+                                        );
+                                        if (
+                                            errors.email ===
+                                            failedAuthenticationMessage
+                                        ) {
+                                            clearFormErrors(
+                                                errors,
+                                                clearErrors,
+                                                'email',
+                                            );
+                                        }
+                                    }}
                                     required
                                     autoComplete="current-password"
                                     placeholder="Password"

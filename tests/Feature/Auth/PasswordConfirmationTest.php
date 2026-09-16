@@ -76,7 +76,7 @@ class PasswordConfirmationTest extends TestCase
             'null' => [['password' => null], 'The password field is required.'],
             'array' => [['password' => ['invalid']], 'The password field must be a string.'],
             'oversized' => [['password' => str_repeat('a', 256)], 'The password field must not be greater than 255 characters.'],
-            'incorrect' => [['password' => 'wrong'], 'The provided password was incorrect.'],
+            'incorrect' => [['password' => 'wrong'], 'The password is incorrect.'],
         ] as $label => [$input, $message]) {
             foreach ([false, true] as $json) {
                 $cases[$label.($json ? ' JSON' : ' browser')] = [$input, $message, $json];

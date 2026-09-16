@@ -33,6 +33,7 @@ class PasswordUpdateRequest extends FormRequest
     {
         return [
             'password' => __('new password'),
+            'password_confirmation' => __('confirm password'),
         ];
     }
 }

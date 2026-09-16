@@ -16,12 +16,4 @@ class ConfirmPasswordRequest extends FormRequest
     {
         return ['password' => $this->currentPasswordRules()];
     }
-
-    /**
-     * @return array<string, string>
-     */
-    public function messages(): array
-    {
-        return ['password.current_password' => __('The provided password was incorrect.')];
-    }
 }

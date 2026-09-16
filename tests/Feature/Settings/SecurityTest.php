@@ -138,7 +138,7 @@ class SecurityTest extends TestCase
                 'password' => 'new-password',
                 'password_confirmation' => 'different-password',
             ])->assertSessionHasErrors([
-                'password_confirmation' => 'The password confirmation field must match new password.',
+                'password_confirmation' => 'The confirm password field must match new password.',
             ])
             ->assertSessionDoesntHaveErrors('password');
 

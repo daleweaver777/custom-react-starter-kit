@@ -115,6 +115,7 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/login', [
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
+            'failedAuthenticationMessage' => __('auth.failed'),
             'status' => $request->session()->get('status'),
         ]));
 

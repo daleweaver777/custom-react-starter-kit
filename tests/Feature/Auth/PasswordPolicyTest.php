@@ -183,7 +183,7 @@ class PasswordPolicyTest extends TestCase
             ? $this->json($method, route($route), $input)
             : $this->call($method, route($route), $input);
         $attribute = match ($field) {
-            'password_confirmation' => 'password confirmation',
+            'password_confirmation' => $flow === 'update' ? 'confirm password' : 'password confirmation',
             'current_password' => 'current password',
             default => $flow === 'update' ? 'new password' : 'password',
         };

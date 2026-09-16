@@ -153,7 +153,6 @@ export default function Security(props: Props) {
                                                 clearFormErrors(
                                                     errors,
                                                     clearErrors,
-                                                    'password',
                                                     'password_confirmation',
                                                 )
                                             }

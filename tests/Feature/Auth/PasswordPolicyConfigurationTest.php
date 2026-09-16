@@ -73,7 +73,7 @@ class PasswordPolicyConfigurationTest extends TestCase
             'password_confirmation' => $oversized,
         ])->assertUnprocessable()->assertJsonValidationErrors([
             'password' => "The new password field must not be greater than $maximum characters.",
-            'password_confirmation' => "The password confirmation field must not be greater than $maximum characters.",
+            'password_confirmation' => "The confirm password field must not be greater than $maximum characters.",
         ]);
         $this->assertTrue(Hash::check('password', $user->refresh()->password));
     }
