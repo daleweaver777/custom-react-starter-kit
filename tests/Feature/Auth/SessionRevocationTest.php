@@ -7,6 +7,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -171,6 +172,47 @@ class SessionRevocationTest extends TestCase
 
         $this->browserRequest($first, 'GET', route('dashboard'))->assertOk();
         $this->browserRequest($second, 'GET', route('dashboard'))->assertRedirect(route('login'));
+        $this->assertGuest();
+    }
+
+    public static function authenticatedRoutes(): array
+    {
+        return [
+            'application auth route' => ['dashboard'],
+            'Fortify auth:web route' => ['password.confirmation'],
+            'new package auth:web route' => ['test.package'],
+        ];
+    }
+
+    #[DataProvider('authenticatedRoutes')]
+    public function test_stale_sessions_can_visit_public_pages_but_not_authenticated_routes(string $routeName): void
+    {
+        Route::get('/test/package', fn () => response('Protected'))
+            ->middleware(['web', 'auth:web'])->name('test.package');
+        Route::getRoutes()->refreshNameLookups();
+
+        if (! Route::has($routeName)) {
+            $this->markTestSkipped('Optional authentication feature removed.');
+        }
+
+        $user = User::factory()->create();
+        $current = $other = [];
+        $this->loginBrowser($current, $user, false);
+        $this->loginBrowser($other, $user, true);
+        $this->browserRequest($other, 'GET', route($routeName))->assertOk();
+        $oldFingerprint = session('password_hash_web');
+
+        $this->browserRequest($current, 'PUT', route('user-password.update'), [
+            'current_password' => 'password',
+            'password' => 'replacement-password',
+            'password_confirmation' => 'replacement-password',
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $this->browserRequest($other, 'GET', route('home'))->assertOk();
+        $this->assertAuthenticatedAs($user);
+        $this->assertSame($oldFingerprint, session('password_hash_web'));
+
+        $this->browserRequest($other, 'GET', route($routeName))->assertRedirect(route('login'));
         $this->assertGuest();
     }
 
