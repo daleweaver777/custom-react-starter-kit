@@ -1,4 +1,5 @@
-import { Form, Head, usePage } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
+import { Form } from '@/components/inertia-form';
 import { useId } from 'react';
 /* @chisel-email-verification */
 import { Link } from '@inertiajs/react';

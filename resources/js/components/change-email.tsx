@@ -1,4 +1,4 @@
-import { Form } from '@inertiajs/react';
+import { Form } from '@/components/inertia-form';
 import { useId } from 'react';
 import EmailChangeController from '@/actions/App/Http/Controllers/Settings/EmailChangeController';
 import InputError from '@/components/input-error';

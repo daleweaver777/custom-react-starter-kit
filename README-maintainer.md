@@ -51,6 +51,16 @@ composer run dev
 
 Never run `install:features` in the maintained checkout to test installation. Use a disposable copy.
 
+## Temporary Inertia Form Copy
+
+All application forms use the named import `import { Form } from '@/components/inertia-form'`, provided by [resources/js/components/inertia-form.ts](resources/js/components/inertia-form.ts). This is a copy of the installed `@inertiajs/react` 3.7.0 component with the callback forwarding fix from [Inertia PR #3262](https://github.com/inertiajs/inertia/pull/3262): `onHttpException`, `onNetworkError`, `onBeforeUpdate`, and `onFlash`. It uses the packaged `useForm` hook and preserves the original Form API, validation, reset behavior, Precognition, and imperative ref methods. The original MIT notice is retained in the component.
+
+Use `useFormContext` from the same local module for descendants of this Form; the packaged hook reads a different context. Keep new Form imports pointed at the local copy while the workaround is needed. Its `es-toolkit` and `laravel-precognition` imports are declared as direct dependencies so installations do not rely on transitive dependency hoisting.
+
+After the PR is merged **and an Inertia release containing it is installed**, change the import source for `Form` and any `useFormContext` imports back to `@inertiajs/react`, then remove the local component. Both use named exports, matching Inertia. Remove the direct `es-toolkit` dependency entry if no other app code uses it. Keep `laravel-precognition` as a direct dependency for the app’s validation support, even after removing the local Form copy. Merging the PR alone does not update the installed package.
+
+Before removing the copy, run frontend formatting/lint, TypeScript, and build checks. Verify successful submission and resets, inline validation and focus, confirmation via form refs/Precognition, and the F14 behavior: HTTP/network failures close their owning modal before showing the global alert; validation errors keep the modal open.
+
 ## Syncing Laravel Upstream
 
 Start from a clean working tree on `main`:

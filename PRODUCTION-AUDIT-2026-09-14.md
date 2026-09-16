@@ -204,7 +204,7 @@ The separate password-update route already has `throttle:6,1`, and the 2FA **log
 
 ### F14 — P2 — Global error alerts are obscured by open dialogs
 
-- [ ] Make dialog request failures visible and accessible inside the active modal context.
+- [x] Make dialog request failures visible and accessible while keeping validation errors in the form.
 
 **Confirmed in the browser:** In the disposable copy, a test-only 419 response was injected for the delete-account request. The Session expired alert appeared blurred behind the open dialog. DOM inspection confirmed an `aria-hidden="true"` ancestor on the alert. Its Refresh action became accessible only after Cancel closed the dialog. The temporary fault-injection route was subsequently removed.
 
@@ -213,6 +213,10 @@ The separate password-update route already has `throttle:6,1`, and the 2FA **log
 **Suggested fix:** Coordinate notification placement and dialog error handling with Base UI's modal accessibility model. Raising z-index alone will not fix hidden semantics or focus trapping. Preserve the existing alert animations and reduced-motion behavior.
 
 **Acceptance:** 419, 429, network, and server failures from deletion, passkey, and 2FA dialogs can be perceived and acted on with keyboard, screen reader, and pointer without guessing that Cancel reveals an error.
+
+**Resolution — September 16, 2026:** The two-factor verification form uses the local copy of Inertia's `Form` with the callback forwarding fix from [PR #3262](https://github.com/inertiajs/inertia/pull/3262): `onHttpException` and `onNetworkError` close its owning dialog, while `onError` keeps validation inline and refocuses the code input. HTTP 422 also leaves the dialog open. The dialog's `onOpenChangeComplete` publishes the pending failure to the existing global NotificationAlert after the closing animation. Password confirmation applies the same local close/report sequence in its JSON request catch. Dialog, AlertDialog, and Sheet wrappers remain unchanged; no global dialog registry is needed. Deletion and passkey actions already finish confirmation before submitting their Inertia request. Existing inline passkey/setup errors remain in their forms. Alert styling, animations, countdown/pause behavior, reduced-motion support, and the flash-toast bridge are preserved.
+
+**Verification:** Retested the simplified implementation in a disposable build: the real 2FA form stays open for Laravel validation redirects and raw 422 responses; 419, 429, 500, and stopped-server network failures close it and show the matching global alert. DOM inspection confirms no remaining dialog or aria-hidden ancestor on the session-expiry alert. Incorrect-password validation remains inline; an injected password-confirmation 419 closes the modal and exposes Refresh. The installed Inertia 3.7.0 React `<Form>` accepts transport callbacks in its types but does not forward them at runtime, so the app temporarily uses a copy of that component with the missing callbacks forwarded to the packaged `useForm` hook. Removal instructions are in the component and `README-maintainer.md`. The local-copy follow-up passed browser checks for profile validation/success, ConfirmedForm Precognition/ref validation, modal validation with focus/reset, and HTTP 419/network failures closing the modal before the global alert. Frontend formatting/lint, TypeScript, production build, and the no-Radix scan pass. Earlier PHP checks passed formatting/static analysis and reported 175 passing tests plus the existing nine F02 SessionRevocationTest failures; this simplification changes no PHP. Temporary fault injection was removed. Browser checks did not exercise real passkey hardware or a screen reader.
 
 ### F15 — P2 — Unverified users cannot delete their account or easily correct their email
 

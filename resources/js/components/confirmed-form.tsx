@@ -1,5 +1,5 @@
 import type { FormComponentRef } from '@inertiajs/core';
-import { Form } from '@inertiajs/react';
+import { Form } from '@/components/inertia-form';
 import type { ComponentProps } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useConfirmation } from '@/hooks/use-confirmation';

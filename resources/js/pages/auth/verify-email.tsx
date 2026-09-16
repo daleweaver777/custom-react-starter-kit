@@ -1,4 +1,5 @@
-import { Form, Head } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
+import { Form } from '@/components/inertia-form';
 import AuthStatus from '@/components/auth-status';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';

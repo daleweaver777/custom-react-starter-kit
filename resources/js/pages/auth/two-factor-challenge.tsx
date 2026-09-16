@@ -1,4 +1,5 @@
-import { Form, Head, setLayoutProps } from '@inertiajs/react';
+import { Head, setLayoutProps } from '@inertiajs/react';
+import { Form } from '@/components/inertia-form';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { useId, useState } from 'react';
 import { textLinkClasses } from '@/components/text-link';

@@ -1,4 +1,4 @@
-import { Form } from '@inertiajs/react';
+import { Form } from '@/components/inertia-form';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { Check, Copy, ScanLine } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
@@ -28,6 +28,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useAppearance } from '@/hooks/use-appearance';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { OTP_MAX_LENGTH } from '@/hooks/use-two-factor-auth';
+import { reportRequestError } from '@/lib/request-errors';
 import { clearFormErrors, focusFirstFormError } from '@/lib/utils';
 import { confirm } from '@/routes/two-factor';
 
@@ -165,9 +166,11 @@ function TwoFactorSetupStep({
 }
 
 function TwoFactorVerificationStep({
+    onRequestFailure,
     onClose,
     onBack,
 }: {
+    onRequestFailure: (status: number) => false | undefined;
     onClose: () => void;
     onBack: () => void;
 }) {
@@ -195,6 +198,8 @@ function TwoFactorVerificationStep({
             {...confirm.form()}
             errorBag="confirmTwoFactorAuthentication"
             onSuccess={() => onClose()}
+            onHttpException={(response) => onRequestFailure(response.status)}
+            onNetworkError={() => onRequestFailure(0)}
             resetOnError
             resetOnSuccess
         >
@@ -307,6 +312,8 @@ export default function TwoFactorSetupModal({
     const [showVerificationStep, setShowVerificationStep] =
         useState<boolean>(false);
 
+    const pendingFailure = useRef<number | null>(null);
+
     let modalConfig: {
         title: string;
         description: string;
@@ -370,7 +377,16 @@ export default function TwoFactorSetupModal({
     }, [isOpen]);
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+        <Dialog
+            open={isOpen}
+            onOpenChange={(open) => !open && handleClose()}
+            onOpenChangeComplete={(open) => {
+                if (!open && pendingFailure.current !== null) {
+                    reportRequestError(pendingFailure.current);
+                    pendingFailure.current = null;
+                }
+            }}
+        >
             <DialogContent className="sm:max-w-md">
                 <DialogHeader className="flex items-center justify-center">
                     <GridScanIcon />
@@ -383,6 +399,14 @@ export default function TwoFactorSetupModal({
                 <div className="flex flex-col items-center gap-5">
                     {showVerificationStep ? (
                         <TwoFactorVerificationStep
+                            onRequestFailure={(status) => {
+                                if (status === 422) return false;
+                                if (status !== 0 && status < 400) return;
+                                pendingFailure.current = status;
+                                handleClose();
+                                // Show the global alert after the closing animation.
+                                return false;
+                            }}
                             onClose={handleClose}
                             onBack={() => setShowVerificationStep(false)}
                         />

@@ -1,4 +1,5 @@
-import { Form, Head, Link } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
+import { Form } from '@/components/inertia-form';
 import EmailChangeController from '@/actions/App/Http/Controllers/Settings/EmailChangeController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';

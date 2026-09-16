@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import { onRequestError, reportRequestError } from '@/lib/request-errors';
 
 type RequestError = {
     id: number;
@@ -17,19 +18,13 @@ export function useRequestErrors() {
             setError({ ...error, id: ++nextId });
         };
 
-        const removeNetworkListener = router.on('networkError', () => {
-            showError({
-                title: 'Connection problem',
-                description: 'Check your internet connection and try again.',
-            });
-
-            return false;
-        });
-
-        const removeHttpListener = router.on('httpException', ({ detail }) => {
-            const status = detail.response.status;
-
-            if (status < 400) {
+        const removeReportedListener = onRequestError((status) => {
+            if (status === 0) {
+                showError({
+                    title: 'Connection problem',
+                    description:
+                        'Check your internet connection and try again.',
+                });
                 return;
             }
 
@@ -55,11 +50,23 @@ export function useRequestErrors() {
                             : 'Unable to complete your request. Please try again.',
                 });
             }
+        });
 
+        const removeNetworkListener = router.on('networkError', () => {
+            reportRequestError(0);
+            return false;
+        });
+        const removeHttpListener = router.on('httpException', ({ detail }) => {
+            const status = detail.response.status;
+            if (status < 400) return;
+            // Validation belongs to the form; Inertia validation redirects use
+            // the separate error event, and raw 422 responses are excluded too.
+            reportRequestError(status);
             return false;
         });
 
         return () => {
+            removeReportedListener();
             removeNetworkListener();
             removeHttpListener();
         };

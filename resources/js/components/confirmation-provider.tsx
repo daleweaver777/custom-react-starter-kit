@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/field';
 import { ConfirmationContext } from '@/hooks/use-confirmation';
 import type { ConfirmationOptions } from '@/hooks/use-confirmation';
+import { reportRequestError } from '@/lib/request-errors';
 /* @chisel-password-confirmation */
 /* @chisel-passkeys */
 import {
@@ -58,6 +59,7 @@ export default function ConfirmationProvider({ children }: PropsWithChildren) {
         [policy.confirmedUntil],
     );
     const pending = useRef<Pending | null>(null);
+    const pendingFailure = useRef<number | null>(null);
     const trigger = useRef<HTMLElement | null>(null);
     const passwordRef = useRef<HTMLInputElement>(null);
     const id = useId();
@@ -71,6 +73,23 @@ export default function ConfirmationProvider({ children }: PropsWithChildren) {
         setProcessing(false);
         request?.resolve(confirmed);
     }, []);
+
+    const handleRequestFailure = useCallback(
+        (failure: unknown) => {
+            const status =
+                failure instanceof HttpResponseError
+                    ? failure.response.status
+                    : failure instanceof SyntaxError
+                      ? 500
+                      : 0;
+            if (status === 422) return false;
+            if (dialog) pendingFailure.current = status;
+            else reportRequestError(status);
+            finish(false);
+            return true;
+        },
+        [dialog, finish],
+    );
 
     useEffect(() => {
         const removeListener = router.on('navigate', () => finish(false));
@@ -122,7 +141,9 @@ export default function ConfirmationProvider({ children }: PropsWithChildren) {
                     let failure = '';
                     try {
                         confirmed = await checkStatus();
-                    } catch {
+                    } catch (requestError) {
+                        if (pending.current !== request) return;
+                        if (handleRequestFailure(requestError)) return;
                         failure =
                             'Unable to check confirmation. Please confirm again or try later.';
                     }
@@ -136,7 +157,7 @@ export default function ConfirmationProvider({ children }: PropsWithChildren) {
                 })();
             });
         },
-        [checkStatus, finish],
+        [checkStatus, finish, handleRequestFailure],
     );
 
     const submit = async () => {
@@ -155,7 +176,9 @@ export default function ConfirmationProvider({ children }: PropsWithChildren) {
                     );
                     setProcessing(false);
                 }
-            } catch {
+            } catch (failure) {
+                if (pending.current !== request) return;
+                if (handleRequestFailure(failure)) return;
                 setDialog(
                     (current) => current && { ...current, needsPassword: true },
                 );
@@ -190,6 +213,7 @@ export default function ConfirmationProvider({ children }: PropsWithChildren) {
             }
         } catch (failure) {
             if (pending.current !== request) return;
+            if (handleRequestFailure(failure)) return;
             const status =
                 failure instanceof HttpResponseError
                     ? failure.response.status
@@ -209,14 +233,7 @@ export default function ConfirmationProvider({ children }: PropsWithChildren) {
                 }
             }
             setError(
-                status === 422
-                    ? (validationMessage ??
-                          'Unable to confirm. Please try again.')
-                    : status === 429
-                      ? 'Too many attempts. Please wait a minute and try again.'
-                      : status === 419 || status === 401
-                        ? 'Your session has expired. Refresh the page and sign in again.'
-                        : 'Unable to confirm. Please try again.',
+                validationMessage ?? 'Unable to confirm. Please try again.',
             );
             setPassword('');
             setProcessing(false);
@@ -239,6 +256,12 @@ export default function ConfirmationProvider({ children }: PropsWithChildren) {
                 open={dialog !== null}
                 onOpenChange={(open) => {
                     if (!open && !processing) finish(false);
+                }}
+                onOpenChangeComplete={(open) => {
+                    if (!open && pendingFailure.current !== null) {
+                        reportRequestError(pendingFailure.current);
+                        pendingFailure.current = null;
+                    }
                 }}
             >
                 <DialogContent showCloseButton={false} finalFocus={trigger}>
@@ -271,11 +294,15 @@ export default function ConfirmationProvider({ children }: PropsWithChildren) {
                                         )
                                             finish(true);
                                     })
-                                    .catch(() =>
-                                        setError(
-                                            'Unable to confirm. Please try again.',
-                                        ),
-                                    );
+                                    .catch((failure) => {
+                                        if (pending.current !== currentRequest)
+                                            return;
+                                        if (!handleRequestFailure(failure)) {
+                                            setError(
+                                                'Unable to confirm. Please try again.',
+                                            );
+                                        }
+                                    });
                             }}
                         />
                     )}
