@@ -220,7 +220,7 @@ The separate password-update route already has `throttle:6,1`, and the 2FA **log
 
 ### F15 — P2 — Unverified users cannot delete their account or easily correct their email
 
-- [ ] Provide a coherent recovery path when the registration address is wrong or inaccessible.
+- [x] Provide email correction from verification; retain verified-only account deletion and make the UI match.
 
 **Confirmed:** An unverified user's correctly authenticated deletion request returned 403 because deletion is inside the `verified` route group. The profile page nevertheless renders DeleteUser. The verification screen offers resend and logout, with no direct edit-email action.
 
@@ -228,7 +228,11 @@ The separate password-update route already has `throttle:6,1`, and the 2FA **log
 
 **Suggested fix:** Decide whether correctly reauthenticated unverified users may delete their own accounts, and make the UI agree. Add an obvious, safely authenticated email-correction route from verification. Coordinate with F03.
 
-**Acceptance:** A user who mistypes their email can correct it or abandon/delete the account without first receiving mail at that address. Verify the no-email-verification Chisel variant too.
+**Acceptance — revised policy:** A user who mistypes their email can correct it without first receiving mail at that address. Account deletion remains unavailable until verification, with an explanation in place of its action. Generated applications without email verification continue to offer deletion normally.
+
+**Resolution — September 16, 2026:** The verification screen now links to Profile through “Wrong email address? Change email address.” The existing F03 flow handles correction. The unverified-address notice, resend action, and resend confirmation now appear in the Email address card when no replacement address is pending. While a change is pending, the card shows only the instructions for confirming the new address, its link expiry, and the current sign-in address. Cancelling restores the original-address notice if it remains unverified. Pending changes still offer cancellation before another address can be entered; cancellation invalidates the pending link. The Delete account card replaces its form with “Verify your email address before deleting your account” when the server reports that verification is required and the current address is unverified. Its server-side `verified` middleware and existing identity-confirmation policy remain intact. The UI uses the server's `mustVerifyEmail` value so it does not block deletion in installations without that feature; existing Chisel regions still remove the registration-verification notice and routes.
+
+**Verification:** Frontend formatting/lint, TypeScript, production build, Pint, PHPStan, and the no-Radix scan pass. The 35 focused profile, email-change, and passkey-policy tests pass. Disposable Chisel installations with all features, no optional features, and registration plus password confirmation pass formatting/lint, TypeScript, builds, and profile/email tests (34, 33 with one skip, and 34 passing tests respectively). These runs used the no-Node installer flag with existing dependencies and ran frontend checks separately. Browser checks cover navigation from verification to Profile, notice placement, resend feedback, pending-address rendering, cancellation restoring the input, the verification requirement replacing deletion, and the normal Delete action returning after verification. The full PHP run reports 176 passes and ten failures: nine session-revocation failures also reproduce on unchanged HEAD; the additional passkey-credential-format failure passes on an isolated rerun and on unchanged HEAD. These broader failures are outside the F15 changes. The pending-wording follow-up passes frontend formatting/lint, TypeScript, and build; browser verification confirms the original-address notice is hidden while pending and restored after cancellation when still unverified. Chisel markers are unchanged by that follow-up.
 
 ### F16 — P2 — CI does not retain the security and frontend coverage needed for these guarantees
 

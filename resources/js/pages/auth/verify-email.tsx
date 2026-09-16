@@ -4,6 +4,7 @@ import AuthStatus from '@/components/auth-status';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { logout } from '@/routes';
+import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
 
 export default function VerifyEmail({ status }: { status?: string }) {
@@ -30,6 +31,15 @@ export default function VerifyEmail({ status }: { status?: string }) {
                         >
                             Resend verification email
                         </Button>
+
+                        <div className="flex flex-col gap-1 text-sm">
+                            <p className="text-muted-foreground">
+                                Wrong email address?
+                            </p>
+                            <TextLink href={edit()}>
+                                Change email address
+                            </TextLink>
+                        </div>
 
                         <TextLink
                             href={logout()}

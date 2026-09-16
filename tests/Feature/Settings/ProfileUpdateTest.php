@@ -3,7 +3,9 @@
 namespace Tests\Feature\Settings;
 
 use App\Models\User;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ProfileUpdateTest extends TestCase
@@ -39,6 +41,37 @@ class ProfileUpdateTest extends TestCase
 
         $this->assertSame('Test User', $user->name);
         $this->assertNotNull($user->email_verified_at);
+    }
+
+    public function test_unverified_user_can_access_profile_with_the_correct_verification_requirement(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        $this->actingAs($user)->get(route('profile.edit'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('settings/profile')
+                ->where('mustVerifyEmail', $user instanceof MustVerifyEmail)
+                ->where('auth.user.email_verified_at', null));
+    }
+
+    public function test_unverified_user_can_delete_only_when_email_verification_was_removed(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        $response = $this->actingAs($user)
+            ->withSession(['auth.password_confirmed_at' => time()])
+            ->deleteJson(route('profile.destroy'));
+
+        if ($user instanceof MustVerifyEmail) {
+            $response->assertForbidden();
+            $this->assertNotNull($user->fresh());
+            $this->assertAuthenticatedAs($user);
+        } else {
+            $response->assertRedirect(route('home'));
+            $this->assertNull($user->fresh());
+            $this->assertGuest();
+        }
     }
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()

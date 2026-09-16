@@ -1,5 +1,5 @@
 import { Form } from '@/components/inertia-form';
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import EmailChangeController from '@/actions/App/Http/Controllers/Settings/EmailChangeController';
 import InputError from '@/components/input-error';
 import ConfirmedForm from '@/components/confirmed-form';
@@ -20,9 +20,11 @@ import { clearFormErrors, focusFirstFormError } from '@/lib/utils';
 export default function ChangeEmail({
     email,
     pendingEmail,
+    children,
 }: {
     email: string;
     pendingEmail: string | null;
+    children?: ReactNode;
 }) {
     const formId = useId();
 
@@ -32,7 +34,7 @@ export default function ChangeEmail({
                 <CardHeader>
                     <CardTitle>Email address</CardTitle>
                     <CardDescription>
-                        Your new email address is awaiting verification.
+                        Confirm your new email address to finish this change.
                     </CardDescription>
                 </CardHeader>
                 <Form
@@ -45,10 +47,10 @@ export default function ChangeEmail({
                             <CardContent>
                                 <Alert>
                                     <AlertDescription>
-                                        Check {pendingEmail} for a verification
-                                        link. The link expires 30 minutes after
-                                        the request. Your current address,{' '}
-                                        {email}, stays active until you confirm.
+                                        Open the verification link sent to{' '}
+                                        {pendingEmail}. It expires 30 minutes
+                                        after your request. Your sign-in address
+                                        remains {email} until you confirm.
                                     </AlertDescription>
                                 </Alert>
                             </CardContent>
@@ -73,6 +75,8 @@ export default function ChangeEmail({
                     your new address before using it for your account.
                 </CardDescription>
             </CardHeader>
+
+            {children && <CardContent>{children}</CardContent>}
 
             <ConfirmedForm
                 id={formId}

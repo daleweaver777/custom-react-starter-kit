@@ -104,37 +104,6 @@ export default function Profile(
                                         />
                                     </Field>
                                 </FieldGroup>
-
-                                {/* @chisel-email-verification */}
-                                {mustVerifyEmail &&
-                                    auth.user.email_verified_at === null && (
-                                        <div>
-                                            <p className="text-muted-foreground text-sm">
-                                                Your email address is
-                                                unverified.{' '}
-                                                <Link
-                                                    href={send()}
-                                                    as="button"
-                                                    className="text-primary underline underline-offset-4"
-                                                >
-                                                    Click here to re-send the
-                                                    verification email.
-                                                </Link>
-                                            </p>
-
-                                            {status ===
-                                                'verification-link-sent' && (
-                                                <Alert className="mt-2">
-                                                    <AlertDescription>
-                                                        A new verification link
-                                                        has been sent to your
-                                                        email address.
-                                                    </AlertDescription>
-                                                </Alert>
-                                            )}
-                                        </div>
-                                    )}
-                                {/* @end-chisel-email-verification */}
                             </CardContent>
 
                             <CardFooter className="justify-end">
@@ -151,7 +120,33 @@ export default function Profile(
                 </Form>
             </Card>
 
-            <ChangeEmail email={auth.user.email} pendingEmail={pendingEmail} />
+            <ChangeEmail email={auth.user.email} pendingEmail={pendingEmail}>
+                {/* @chisel-email-verification */}
+                {mustVerifyEmail && auth.user.email_verified_at === null && (
+                    <div>
+                        <p className="text-muted-foreground text-sm">
+                            Your email address is unverified.{' '}
+                            <Link
+                                href={send()}
+                                as="button"
+                                className="text-primary underline underline-offset-4"
+                            >
+                                Click here to re-send the verification email.
+                            </Link>
+                        </p>
+
+                        {status === 'verification-link-sent' && (
+                            <Alert className="mt-2">
+                                <AlertDescription>
+                                    A new verification link has been sent to
+                                    your email address.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </div>
+                )}
+                {/* @end-chisel-email-verification */}
+            </ChangeEmail>
 
             <DeleteUser />
         </>
