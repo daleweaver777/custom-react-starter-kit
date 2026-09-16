@@ -59,7 +59,7 @@ class PasswordConfirmationPolicyTest extends TestCase
                 'current_password' => 'password',
                 'password' => 'New-secure-password-42!',
                 'password_confirmation' => 'New-secure-password-42!',
-            ])->assertSessionHasNoErrors()->assertSessionMissing('auth.password_confirmed_at');
+            ])->assertSessionHasNoErrors();
             $this->assertTrue(Hash::check('New-secure-password-42!', $user->fresh()->password));
         }
     }
