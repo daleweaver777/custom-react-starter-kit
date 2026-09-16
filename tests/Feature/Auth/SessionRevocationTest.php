@@ -175,17 +175,18 @@ class SessionRevocationTest extends TestCase
         $this->assertGuest();
     }
 
-    public static function authenticatedRoutes(): array
+    public static function webRoutes(): array
     {
         return [
+            'public route' => ['home'],
             'application auth route' => ['dashboard'],
             'Fortify auth:web route' => ['password.confirmation'],
             'new package auth:web route' => ['test.package'],
         ];
     }
 
-    #[DataProvider('authenticatedRoutes')]
-    public function test_stale_sessions_can_visit_public_pages_but_not_authenticated_routes(string $routeName): void
+    #[DataProvider('webRoutes')]
+    public function test_stale_sessions_are_revoked_on_the_next_web_request(string $routeName): void
     {
         Route::get('/test/package', fn () => response('Protected'))
             ->middleware(['web', 'auth:web'])->name('test.package');
@@ -200,7 +201,6 @@ class SessionRevocationTest extends TestCase
         $this->loginBrowser($current, $user, false);
         $this->loginBrowser($other, $user, true);
         $this->browserRequest($other, 'GET', route($routeName))->assertOk();
-        $oldFingerprint = session('password_hash_web');
 
         $this->browserRequest($current, 'PUT', route('user-password.update'), [
             'current_password' => 'password',
@@ -208,11 +208,11 @@ class SessionRevocationTest extends TestCase
             'password_confirmation' => 'replacement-password',
         ])->assertSessionHasNoErrors()->assertRedirect();
 
-        $this->browserRequest($other, 'GET', route('home'))->assertOk();
-        $this->assertAuthenticatedAs($user);
-        $this->assertSame($oldFingerprint, session('password_hash_web'));
-
         $this->browserRequest($other, 'GET', route($routeName))->assertRedirect(route('login'));
+        $this->assertGuest();
+
+        // After revocation, public pages remain accessible as a guest.
+        $this->browserRequest($other, 'GET', route('home'))->assertOk();
         $this->assertGuest();
     }
 
