@@ -98,6 +98,16 @@ The form dependency request was evaluation-only, to judge a possible upstream PR
 
 The tracked source `composer.lock` was deliberately removed to restore the repository/upstream packaging policy. Its original content is preserved in the baseline copy; installed applications should keep their own resolved lockfiles. Local runtime: PHP 8.5.8 and Node 22.23.2.
 
+### CI mail-link investigation (2026-09-17)
+
+[Run 35265399522](https://github.com/daleweaver777/custom-react-starter-kit/actions/runs/35265399522) failed Chromium password recovery in installer masks 0, 1, and 3; the selected reset URL was corrupted before navigation. [Diagnostic run 35283416178](https://github.com/daleweaver777/custom-react-starter-kit/actions/runs/35283416178) retained raw mail showing that the HTML fallback href was malformed while the primary button, fallback label, and plain-text URLs were correct.
+
+A standalone CommonMark probe reproduced the corruption on official PHP 8.3.33 with setup-php's `opcache.jit=1235` and 256 MB JIT buffer. Fixed-token, random-token, and full Markdown probes each ran 1,000 iterations; their first URL was corrupted with that JIT mode and all passed with JIT off while OPcache stayed enabled. PHP 8.5.10 also passed the rendering probes with JIT enabled. CI now explicitly disables JIT, and the browser helper retains mail evidence even if URL parsing throws.
+
+The app now requires PHP `^8.5` and Node `^24.21.0` (the current Node 24 LTS release). Source CI and the installed application workflow both read `.php-version` and `.nvmrc`; PHP setup updates to the latest 8.5 patch. Packaging checks require both manifests to survive archives and every Chisel selection. Node types match the Node 24 series. These repository settings do not configure Herd or deployment runtimes.
+
+Evidence is in `/private/tmp/starter-ci-35265399522`: original failure artifacts under `ci-{0,1,3}`, diagnostic raw mail under `run26-3`, and `php83-jit-comparison.json` / `php8510-jit-comparison.json`. Earlier source checks passed (34 application tests and 187 maintainer tests), as did Base UI/base-nova/b37ZhrNTs verification, four fresh Node archive installations, and all 12 account-lifecycle cases on those installations. Initial local TypeScript errors were missing generated Wayfinder imports; generation restored a passing check. Final local source checks pass on Herd PHP 8.5.8 and Node 24.21.0: 34 application tests / 113 assertions, 187 maintainer tests / 2,815 assertions, formatting, lint, PHPStan, TypeScript, client/SSR builds, and React Doctor. The focused packaging test also passes all four selections (876 assertions). The complete remote installer/browser matrix remains the final acceptance gate.
+
 ## Completed local acceptance
 
 - [x] Final source format/lint/types/Pint/PHPStan/application/maintainer/Doctor/build checks.

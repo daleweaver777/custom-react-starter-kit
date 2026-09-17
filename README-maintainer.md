@@ -21,7 +21,7 @@ Do not commit source dependency lockfiles, `vendor`, `node_modules`, or generate
 
 ## Running all tests
 
-Run commands from the source repository root after the setup above. Use PHP with SQLite support and the extensions required by Composer, Node 22.18 or later in the 22.x series, Python 3, and Git. The shell examples use Bash or Zsh. Both installer paths require installed source `vendor` and `node_modules`; the no-Node path blocks Node during installation, then uses it for frontend validation.
+Run commands from the source repository root after the setup above. Use the PHP and Node versions in `.php-version` and `.nvmrc` (currently PHP 8.5 and Node 24.21.0 LTS), PHP with SQLite support and the extensions required by Composer, Python 3, and Git. With nvm, run `nvm install && nvm use` before setup or validation. The shell examples use Bash or Zsh. Both installer paths require installed source `vendor` and `node_modules`; the no-Node path blocks Node during installation, then uses it for frontend validation.
 
 ### Source checks
 
@@ -134,7 +134,9 @@ Composer/Laravel installer hooks, no-Node support, and migration ordering are pa
 
 The [tests workflow](.github/workflows/tests.yml) runs on pull requests and pushes to `main`. To run it on demand, open the repository's **Actions → tests → Run workflow**, select the branch, and run it. The branch must contain the changes you want to test.
 
-The source job runs source checks, application tests, React Doctor, and maintainer analysis/tests. Four installer jobs each check one selection with and without Node and exercise the archive installation in all three browsers. Mask 3 also runs development SSR and production CSR checks. CI uses PHP 8.3 and Node 22.
+The source job runs source checks, application tests, React Doctor, and maintainer analysis/tests. Four installer jobs each check one selection with and without Node and exercise the archive installation in all three browsers. Mask 3 also runs development SSR and production CSR checks. Source and installed application CI read `.php-version` and `.nvmrc`; these files survive installation. Keep them, Composer's PHP requirement, npm's Node engine and Node types, and the documented versions aligned when upgrading runtimes.
+
+Both source CI and the installed application workflow explicitly disable JIT while leaving OPcache enabled. With PHP 8.3.33, setup-php's default `opcache.jit=1235` corrupts CommonMark's first encoded email fallback URL; the primary button remains correct. The same rendering probe passes with `opcache.jit=off`. Keep the override until the CI PHP runtime passes that probe and the complete browser matrix with JIT enabled. This setting only configures CI; deployment PHP settings are independent.
 
 Download `source-tests` and `installer-0` through `installer-3` artifacts from the workflow run for available JUnit reports, installer logs/summaries, and browser evidence; artifacts are retained for seven days. CI configuration describes intended coverage; only a completed run establishes a pass.
 

@@ -6,8 +6,8 @@ Registration and account email verification are optional during installation. Pa
 
 ## Requirements
 
-- PHP 8.3 or later in the PHP 8 series, Composer 2, and the extensions required by your database and Composer dependencies.
-- Node.js 22.18+ in the Node 22 series, or Node.js 24.11+, with npm.
+- PHP 8.5 or later in the PHP 8 series, Composer 2, and the extensions required by your database and Composer dependencies. `.php-version` records the version used in CI.
+- Node.js 24.21.0 or later in the Node 24 LTS series, with npm. Run `nvm install && nvm use` to select the version in `.nvmrc`.
 - SQLite for local development, or a configured database supported by Laravel.
 
 ## Install and run

@@ -50,6 +50,7 @@ class ChiselFeatureCleanupTest extends TestCase
             foreach ([
                 'chisel.php', 'chisel-paths.php', 'composer.json', 'package.json',
                 'phpunit.xml', 'phpunit.maintainer.xml', 'README.md', 'README-maintainer.md',
+                '.php-version', '.nvmrc',
                 'phpstan.neon', 'phpstan.maintainer.neon',
                 'AGENTS.md', 'docs/maintainer/CLEANUP-PLAN.md',
                 'scripts/test-chisel.py', '.github/workflows/tests.yml',
@@ -99,7 +100,7 @@ PHP);
                 'tests/Feature/Auth/PasswordConfirmationTest.php',
                 'tests/Feature/Auth/TwoFactorChallengeTest.php',
                 'tests/Feature/Settings/EmailChangeTest.php',
-                'README.md', 'phpunit.xml', 'phpstan.neon', '.github/workflows/tests.yml',
+                'README.md', '.php-version', '.nvmrc', 'phpunit.xml', 'phpstan.neon', '.github/workflows/tests.yml',
             ] as $path) {
                 $this->assertFileExists($directory.'/'.$path);
             }
