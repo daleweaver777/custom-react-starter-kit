@@ -217,7 +217,7 @@ def archive_source(snapshot, output):
             require(not Path(member.name).is_absolute() and ".." not in Path(member.name).parts, "Unsafe archive path")
             require(member.isfile() or member.isdir(), "Unexpected link in release archive")
         bundle.extractall(destination)
-    for relative in ("README.md", ".php-version", ".nvmrc", "chisel.php", "chisel-paths.php", "phpstan.neon", "bootstrap/cache/.gitignore", "tests/Maintainer/Fixtures/application-tests.yml"):
+    for relative in ("README.md", "chisel.php", "chisel-paths.php", "phpstan.neon", "bootstrap/cache/.gitignore", "tests/Maintainer/Fixtures/application-tests.yml"):
         require((destination / relative).is_file(), f"Required installation file missing from release archive: {relative}")
     for relative in ("AGENTS.md", "README-maintainer.md", "phpstan.maintainer.neon", "tests/Maintainer/Security", "tests/Maintainer/Installer", "docs/maintainer", "PRODUCTION-AUDIT-2026-09-14.md"):
         require(not (destination / relative).exists(), f"Maintainer file included in release archive: {relative}")
@@ -465,7 +465,7 @@ def validate_source(app, features):
     require("installer" not in composer.get("extra", {}).get("laravel", {}), "Laravel installer hook survived")
     require(not {"test:maintainer", "test:installer", "types:check:maintainer"} & composer.get("scripts", {}).keys(), "Maintainer Composer scripts survived")
     require("install:features" not in json.dumps(composer["scripts"]), "Composer feature-install hook survived")
-    for relative in ("README.md", ".php-version", ".nvmrc", ".github/workflows/tests.yml", "composer.json", "package.json", "phpunit.xml", "phpstan.neon"):
+    for relative in ("README.md", ".github/workflows/tests.yml", "composer.json", "package.json", "phpunit.xml", "phpstan.neon"):
         content = (app / relative).read_text()
         require(not re.search(r"tests/Maintainer|phpunit\.maintainer|phpstan\.maintainer|README-maintainer|test-chisel|test:maintainer|types:check:maintainer|test:browser|react-doctor", content), f"Generated application references maintainer tooling: {relative}")
     removed_symbols = []

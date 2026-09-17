@@ -20,10 +20,16 @@ jobs:
               with:
                   persist-credentials: false
 
+            - name: Read PHP requirement
+              id: php
+              run: |
+                  version="$(jq -er '.require.php | ltrimstr("^")' composer.json)"
+                  echo "version=$version" >> "$GITHUB_OUTPUT"
+
             - name: Setup PHP
               uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
               with:
-                  php-version-file: '.php-version'
+                  php-version: ${{ steps.php.outputs.version }}
                   tools: composer:v2
                   coverage: none
                   # PHP 8.3 JIT corrupts CommonMark email fallback URLs.
@@ -34,7 +40,8 @@ jobs:
             - name: Setup Node
               uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
               with:
-                  node-version-file: '.nvmrc'
+                  node-version-file: 'package.json'
+                  check-latest: true
 
             - name: Setup Application
               run: composer setup
