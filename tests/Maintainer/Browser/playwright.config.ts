@@ -101,7 +101,10 @@ export default defineConfig({
                           ? `npm run dev -- --host=127.0.0.1 --port=${vitePort} --strictPort`
                           : 'php artisan inertia:start-ssr',
                       cwd: app,
-                      env: environment,
+                      // This fixture intentionally exercises Vite's dev server in CI.
+                      env: development
+                          ? { ...environment, LARAVEL_BYPASS_ENV_CHECK: '1' }
+                          : environment,
                       url: development
                           ? `http://127.0.0.1:${vitePort}/@vite/client`
                           : 'http://127.0.0.1:13714/health',
