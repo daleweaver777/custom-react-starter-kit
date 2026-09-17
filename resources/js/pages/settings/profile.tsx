@@ -1,15 +1,15 @@
+import { ActionButton } from '@/components/action-button';
 import { Head, usePage } from '@inertiajs/react';
 import { Form } from '@/components/inertia-form';
 import { useId } from 'react';
 /* @chisel-email-verification */
-import { Link } from '@inertiajs/react';
+import { RequestButton } from '@/components/request-button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 /* @end-chisel-email-verification */
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import ChangeEmail from '@/components/change-email';
 import DeleteUser from '@/components/delete-user';
 import InputError from '@/components/input-error';
-import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -107,13 +107,14 @@ export default function Profile(
                             </CardContent>
 
                             <CardFooter className="justify-end">
-                                <Button
+                                <ActionButton
                                     type="submit"
                                     disabled={processing}
                                     data-test="update-profile-button"
+                                    pending={processing}
                                 >
                                     Save
-                                </Button>
+                                </ActionButton>
                             </CardFooter>
                         </>
                     )}
@@ -126,13 +127,13 @@ export default function Profile(
                     <div>
                         <p className="text-muted-foreground text-sm">
                             Your email address is unverified.{' '}
-                            <Link
-                                href={send()}
-                                as="button"
-                                className="text-primary underline underline-offset-4"
+                            <RequestButton
+                                action={send()}
+                                variant="link"
+                                className="h-auto max-w-full p-0 text-left whitespace-normal underline"
                             >
                                 Click here to re-send the verification email.
-                            </Link>
+                            </RequestButton>
                         </p>
 
                         {status === 'verification-link-sent' && (

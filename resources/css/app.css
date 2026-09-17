@@ -198,3 +198,28 @@
         }
     }
 }
+
+/* Keep the idle content in normal flow, including icon padding and gaps. */
+.action-button {
+    position: relative;
+}
+
+.action-button-content {
+    display: inline-flex;
+    min-width: 0;
+    max-width: 100%;
+    align-items: inherit;
+    justify-content: inherit;
+    gap: inherit;
+    transition-property: none;
+}
+
+.action-button[data-loading] > .action-button-content {
+    opacity: 0;
+}
+
+.action-button-spinner {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+}

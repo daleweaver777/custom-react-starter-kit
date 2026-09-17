@@ -246,6 +246,18 @@ The separate password-update route already has `throttle:6,1`, and the 2FA **log
 
 **Acceptance:** CI fails when a fixed finding is deliberately reintroduced. Generated applications have no missing-feature imports/routes, can cache production configuration, and are tested without relying on a developer's existing build artifacts.
 
+### F17 — P2 — Consistent action-button loading feedback
+
+- [x] Add centered, delayed spinners without changing button dimensions.
+
+**Agreed behavior — September 17, 2026:** Buttons disable immediately and keep their text during the initial delay. Slow requests replace the visible content with a centered spinner while preserving the idle dimensions and accessible name. Fast requests show no spinner. Use the same configurable initial delay as Inertia's built-in progress bar. A button restores its label when its own operation ends; the bar finishes fading independently. This replaces the earlier requirement for exact simultaneous disappearance.
+
+**Implementation:** `ActionButton` composes the existing Base UI Button/Spinner and a small local delay hook. `LOADING_DELAY` in `resources/js/lib/loading.ts` defaults to 250 ms and is also passed to Inertia in `app.tsx`. `RequestButton` handles mutations presented as links or menu items. JSON/passkey work retains local pending state and button feedback. Confirmation prompts pause the originating spinner while awaiting input. Follow-up requests remain part of the initiating action's pending state. Retry errors and recovery-code content retain their footprint during requests. The custom progress renderer, request registry, completion coordination, and their controller tests have been removed.
+
+**Verification:** The simplified implementation passed all 48 button variant/size combinations with no server delay and a 1,200 ms delay. Fast cases showed neither indicator; delayed spinners appeared at 256–264 ms, preserved dimensions, and restored labels before the native bar finished fading. A 600 ms shared setting showed both indicators at 612 ms; zero showed the spinner at 6 ms and native bar at 23 ms. Mobile checks at 390 px covered profile save, validation, and verification resend with no horizontal overflow. Delayed HTTP 500 responses restored usable controls and retained the global alert. Logout and software-passkey cancellation passed; passkey cancellation showed only local button feedback. Light/dark and reduced-motion style checks passed. Formatting/lint, TypeScript, build, Pint, PHPStan, and all 186 PHP tests pass. All/none/mixed Chisel copies pass frontend checks and builds. Browser checks used disposable copies; the temporary test fixtures were removed after verification. Physical authenticator prompts, screen readers, and native forced-colors mode were not tested.
+
+See [the maintainer guidance](README-maintainer.md#request-loading-feedback).
+
 ## Rate-limit design to review
 
 These are **proposed starting budgets**, not tested capacity limits. Tune them using expected traffic, shared-IP users, mail-provider quotas, and measurements. Use separate action names so unrelated endpoints do not accidentally share generic throttle counters. Keep an independent aggregate budget where needed.

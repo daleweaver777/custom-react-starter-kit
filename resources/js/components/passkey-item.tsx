@@ -1,7 +1,7 @@
 import { KeyRound, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useConfirmation } from '@/hooks/use-confirmation';
-import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/components/action-button';
 import { Badge } from '@/components/ui/badge';
 import type { Passkey } from '@/types/auth';
 
@@ -15,6 +15,8 @@ export default function PasskeyItem({ passkey, onDelete }: Props) {
     const [isDeleting, setIsDeleting] = useState(false);
 
     const handleDelete = async () => {
+        if (isDeleting) return;
+        setIsDeleting(true);
         if (
             !(await confirm({
                 title: 'Remove passkey?',
@@ -23,9 +25,10 @@ export default function PasskeyItem({ passkey, onDelete }: Props) {
                 destructive: true,
                 always: true,
             }))
-        )
+        ) {
+            setIsDeleting(false);
             return;
-        setIsDeleting(true);
+        }
         onDelete(passkey.id, () => setIsDeleting(false));
     };
 
@@ -60,7 +63,8 @@ export default function PasskeyItem({ passkey, onDelete }: Props) {
                 </div>
             </div>
 
-            <Button
+            <ActionButton
+                pending={isDeleting}
                 variant="ghost"
                 size="sm"
                 aria-label={`Remove ${passkey.name}`}
@@ -72,7 +76,7 @@ export default function PasskeyItem({ passkey, onDelete }: Props) {
             >
                 <Trash2 data-icon="inline-start" />
                 <span className="sr-only">Remove</span>
-            </Button>
+            </ActionButton>
         </div>
     );
 }

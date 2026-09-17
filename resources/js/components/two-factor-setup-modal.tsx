@@ -1,3 +1,4 @@
+import { ActionButton } from '@/components/action-button';
 import { Form } from '@/components/inertia-form';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { Check, Copy, ScanLine } from 'lucide-react';
@@ -76,16 +77,26 @@ function TwoFactorSetupStep({
     const { resolvedAppearance } = useAppearance();
     const [copiedText, copy] = useClipboard();
     const [copyMessage, setCopyMessage] = useState('');
+    const [retrying, setRetrying] = useState(false);
+    const [retryErrors, setRetryErrors] = useState<string[]>([]);
     const IconComponent = copiedText === manualSetupKey ? Check : Copy;
 
     return (
         <>
-            {errors?.length ? (
+            {errors?.length || retrying ? (
                 <>
-                    <AlertError errors={errors} />
-                    <Button variant="outline" onClick={onRetry}>
+                    <AlertError errors={retrying ? retryErrors : errors} />
+                    <ActionButton
+                        pending={retrying}
+                        variant="outline"
+                        onClick={() => {
+                            setRetryErrors(errors);
+                            setRetrying(true);
+                            void onRetry().finally(() => setRetrying(false));
+                        }}
+                    >
                         Try again
-                    </Button>
+                    </ActionButton>
                 </>
             ) : (
                 <>
@@ -269,15 +280,16 @@ function TwoFactorVerificationStep({
                             >
                                 Back
                             </Button>
-                            <Button
+                            <ActionButton
                                 type="submit"
                                 className="flex-1"
                                 disabled={
                                     processing || code.length < OTP_MAX_LENGTH
                                 }
+                                pending={processing}
                             >
                                 Confirm
-                            </Button>
+                            </ActionButton>
                         </div>
                     </div>
                 </>

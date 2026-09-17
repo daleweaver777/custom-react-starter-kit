@@ -97,8 +97,13 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
     };
 
     const fetchRecoveryCodes = async (): Promise<boolean> => {
-        clearRecoveryCodes();
-        if (!(await confirm())) return false;
+        // Keep the existing footprint while regenerating; the view hides stale
+        // codes until the replacement request finishes. Expiry still clears them.
+        recoveryGeneration.current++;
+        if (!(await confirm())) {
+            clearRecoveryCodes();
+            return false;
+        }
         const requestGeneration = recoveryGeneration.current;
         try {
             setErrors([]);

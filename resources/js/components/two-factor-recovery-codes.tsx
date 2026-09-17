@@ -1,8 +1,8 @@
+import { ActionButton } from '@/components/action-button';
 import { Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import AlertError from '@/components/alert-error';
 import ConfirmedForm from '@/components/confirmed-form';
-import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -30,6 +30,7 @@ export default function TwoFactorRecoveryCodes({
 }: Props) {
     const [codesAreVisible, setCodesAreVisible] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [regenerating, setRegenerating] = useState(false);
     const loadingRef = useRef(false);
     const codesSectionRef = useRef<HTMLUListElement | null>(null);
     const canRegenerateCodes = recoveryCodesList.length > 0 && codesAreVisible;
@@ -38,11 +39,11 @@ export default function TwoFactorRecoveryCodes({
         if (!recoveryCodesList.length) setCodesAreVisible(false);
     }, [recoveryCodesList]);
 
-    const loadCodes = async () => {
+    const loadCodes = async (regenerated = false) => {
         if (loadingRef.current) return;
 
         loadingRef.current = true;
-        setIsLoading(true);
+        if (!regenerated) setIsLoading(true);
         const loaded = await fetchRecoveryCodes().finally(() => {
             loadingRef.current = false;
             setIsLoading(false);
@@ -87,6 +88,10 @@ export default function TwoFactorRecoveryCodes({
                         <ul
                             ref={codesSectionRef}
                             className="bg-muted grid gap-1 rounded-lg p-3 font-mono text-sm"
+                            style={{
+                                visibility: regenerating ? 'hidden' : undefined,
+                            }}
+                            aria-busy={regenerating}
                             aria-label="Recovery codes"
                         >
                             {recoveryCodesList.map((code) => (
@@ -110,7 +115,7 @@ export default function TwoFactorRecoveryCodes({
             )}
 
             <CardFooter className="flex-wrap justify-end gap-3">
-                {canRegenerateCodes && (
+                {(canRegenerateCodes || regenerating) && (
                     <ConfirmedForm
                         {...regenerateRecoveryCodes.form()}
                         options={{ preserveScroll: true }}
@@ -122,27 +127,29 @@ export default function TwoFactorRecoveryCodes({
                             destructive: true,
                             always: true,
                         }}
-                        onSuccess={() => {
-                            void loadCodes();
-                        }}
+                        onStart={() => setRegenerating(true)}
+                        onFinish={() => setRegenerating(false)}
+                        onSuccess={() => loadCodes(true)}
                     >
                         {({ processing }) => (
-                            <Button
+                            <ActionButton
                                 type="submit"
                                 variant="secondary"
                                 disabled={processing}
                                 aria-describedby="regenerate-warning"
+                                pending={processing}
                             >
                                 <RefreshCw data-icon="inline-start" />
                                 Regenerate codes
-                            </Button>
+                            </ActionButton>
                         )}
                     </ConfirmedForm>
                 )}
 
-                <Button
+                <ActionButton
+                    pending={isLoading}
                     onClick={toggleCodesVisibility}
-                    disabled={isLoading}
+                    disabled={isLoading || regenerating}
                     aria-expanded={codesAreVisible}
                     aria-controls={
                         codesAreVisible ? RECOVERY_CODES_ID : undefined
@@ -153,7 +160,7 @@ export default function TwoFactorRecoveryCodes({
                         aria-hidden="true"
                     />
                     {codesAreVisible ? 'Hide' : 'View'} recovery codes
-                </Button>
+                </ActionButton>
             </CardFooter>
         </Card>
     );

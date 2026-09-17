@@ -1,10 +1,10 @@
+import { ActionButton } from '@/components/action-button';
 import { Head } from '@inertiajs/react';
 import { Form } from '@/components/inertia-form';
 import { useId } from 'react';
 import AuthStatus from '@/components/auth-status';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Field,
@@ -141,14 +141,15 @@ export default function Login({
                                 )}
                             </Field>
 
-                            <Button
+                            <ActionButton
                                 type="submit"
                                 className="w-full"
                                 disabled={processing}
                                 data-test="login-button"
+                                pending={processing}
                             >
                                 Log in
-                            </Button>
+                            </ActionButton>
                         </FieldGroup>
 
                         {/* @chisel-registration */}

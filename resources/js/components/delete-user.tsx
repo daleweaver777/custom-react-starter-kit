@@ -1,7 +1,7 @@
+import { ActionButton } from '@/components/action-button';
 import { usePage } from '@inertiajs/react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import ConfirmedForm from '@/components/confirmed-form';
-import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -51,14 +51,15 @@ export default function DeleteUser() {
                         }}
                     >
                         {({ processing }) => (
-                            <Button
+                            <ActionButton
                                 type="submit"
                                 variant="destructive"
                                 disabled={processing}
                                 data-test="delete-user-button"
+                                pending={processing}
                             >
                                 Delete
-                            </Button>
+                            </ActionButton>
                         )}
                     </ConfirmedForm>
                 )}

@@ -52,7 +52,9 @@ export default function ManagePasskeys(props: Props) {
     };
 
     const handleRegisterSuccess = () => {
-        router.reload();
+        return new Promise<void>((resolve) =>
+            router.reload({ onFinish: () => resolve() }),
+        );
     };
 
     if (!(props.canManagePasskeys ?? false)) {

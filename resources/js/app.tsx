@@ -1,5 +1,6 @@
 import { createInertiaApp } from '@inertiajs/react';
 import FlashToaster from '@/components/flash-toaster';
+import { LOADING_DELAY } from '@/lib/loading';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
@@ -32,6 +33,7 @@ void createInertiaApp({
         );
     },
     progress: {
+        delay: LOADING_DELAY,
         color: 'var(--primary)',
     },
 });

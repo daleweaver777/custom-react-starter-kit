@@ -1,5 +1,6 @@
 import { Link, router } from '@inertiajs/react';
 import { LogOut, Settings } from 'lucide-react';
+import { RequestButton } from '@/components/request-button';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -47,12 +48,13 @@ export function UserMenuContent({ user }: Props) {
             <DropdownMenuSeparator className="bg-border/50" />
             <DropdownMenuItem
                 nativeButton
+                closeOnClick={false}
                 render={
-                    <Link
-                        className="block w-full cursor-pointer"
-                        href={logout()}
-                        as="button"
-                        onClick={handleLogout}
+                    <RequestButton
+                        className="w-full justify-start"
+                        variant="ghost"
+                        action={logout()}
+                        beforeRequest={handleLogout}
                         data-test="logout-button"
                     />
                 }

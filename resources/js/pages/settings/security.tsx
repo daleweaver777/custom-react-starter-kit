@@ -1,10 +1,10 @@
+import { ActionButton } from '@/components/action-button';
 import { Head } from '@inertiajs/react';
 import { Form } from '@/components/inertia-form';
 import { useId } from 'react';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
-import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -181,13 +181,14 @@ export default function Security(props: Props) {
                             </CardContent>
 
                             <CardFooter className="justify-end">
-                                <Button
+                                <ActionButton
                                     type="submit"
                                     disabled={processing}
                                     data-test="update-password-button"
+                                    pending={processing}
                                 >
                                     Save
-                                </Button>
+                                </ActionButton>
                             </CardFooter>
                         </>
                     )}

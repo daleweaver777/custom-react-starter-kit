@@ -1,10 +1,10 @@
+import { ActionButton } from '@/components/action-button';
 import { Form } from '@/components/inertia-form';
 import { useId, type ReactNode } from 'react';
 import EmailChangeController from '@/actions/App/Http/Controllers/Settings/EmailChangeController';
 import InputError from '@/components/input-error';
 import ConfirmedForm from '@/components/confirmed-form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -55,9 +55,13 @@ export default function ChangeEmail({
                                 </Alert>
                             </CardContent>
                             <CardFooter className="justify-end">
-                                <Button type="submit" disabled={processing}>
+                                <ActionButton
+                                    type="submit"
+                                    disabled={processing}
+                                    pending={processing}
+                                >
                                     Cancel email change
-                                </Button>
+                                </ActionButton>
                             </CardFooter>
                         </>
                     )}
@@ -125,9 +129,13 @@ export default function ChangeEmail({
                             </FieldGroup>
                         </CardContent>
                         <CardFooter className="justify-end">
-                            <Button type="submit" disabled={processing}>
+                            <ActionButton
+                                type="submit"
+                                disabled={processing}
+                                pending={processing}
+                            >
                                 Send verification link
-                            </Button>
+                            </ActionButton>
                         </CardFooter>
                     </>
                 )}

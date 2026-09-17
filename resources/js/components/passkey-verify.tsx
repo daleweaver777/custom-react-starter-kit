@@ -2,9 +2,9 @@ import type { UrlMethodPair } from '@inertiajs/core';
 import { router } from '@inertiajs/react';
 import { usePasskeyVerify } from '@laravel/passkeys/react';
 import { KeyRound } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useRef, useState } from 'react';
+import { ActionButton } from '@/components/action-button';
 import { FieldError, FieldSeparator } from '@/components/ui/field';
-import { Spinner } from '@/components/ui/spinner';
 
 type Props = {
     routes?: {
@@ -12,19 +12,19 @@ type Props = {
         submit: UrlMethodPair;
     };
     label?: string;
-    loadingLabel?: string;
     separator?: string;
-    onVerified?: () => void;
+    onVerified?: () => void | Promise<void>;
 };
 
 export default function PasskeyVerify({
     routes,
     label,
-    loadingLabel,
     separator,
     onVerified,
 }: Props = {}) {
-    const { verify, isLoading, error, isSupported } = usePasskeyVerify({
+    const [pending, setPending] = useState(false);
+    const followUp = useRef<Promise<void> | null>(null);
+    const { verify, error, isSupported } = usePasskeyVerify({
         ...(routes && {
             routes: {
                 options: routes.options.url,
@@ -32,11 +32,13 @@ export default function PasskeyVerify({
             },
         }),
         onSuccess: (response) => {
-            if (onVerified) {
-                onVerified();
-            } else {
-                router.visit(response.redirect ?? '/dashboard');
-            }
+            followUp.current = onVerified
+                ? Promise.resolve(onVerified())
+                : new Promise<void>((resolve) =>
+                      router.visit(response.redirect ?? '/dashboard', {
+                          onFinish: () => resolve(),
+                      }),
+                  );
         },
     });
 
@@ -47,18 +49,37 @@ export default function PasskeyVerify({
     return (
         <>
             <div className="grid gap-2">
-                <Button
+                <ActionButton
+                    pending={pending}
+                    pauseWhileConfirming={false}
                     type="button"
                     variant="outline"
                     className="w-full"
-                    onClick={verify}
-                    disabled={isLoading}
+                    onClick={() => {
+                        if (pending) return;
+                        setPending(true);
+                        followUp.current = null;
+                        void (async () => {
+                            try {
+                                await verify();
+                                await followUp.current;
+                            } finally {
+                                setPending(false);
+                            }
+                        })();
+                    }}
                 >
-                    {isLoading ? <Spinner /> : <KeyRound />}
-                    {isLoading
-                        ? (loadingLabel ?? 'Authenticating…')
-                        : (label ?? 'Sign in with a passkey')}
-                </Button>
+                    <KeyRound data-icon="inline-start" />
+                    {label ?? 'Sign in with a passkey'}
+                </ActionButton>
+                {pending && (
+                    <p
+                        role="status"
+                        className="text-muted-foreground text-center text-sm"
+                    >
+                        Complete the passkey prompt on your device.
+                    </p>
+                )}
                 <FieldError className="text-center">{error}</FieldError>
             </div>
 

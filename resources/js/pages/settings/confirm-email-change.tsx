@@ -1,3 +1,4 @@
+import { ActionButton } from '@/components/action-button';
 import { Head, Link } from '@inertiajs/react';
 import { Form } from '@/components/inertia-form';
 import EmailChangeController from '@/actions/App/Http/Controllers/Settings/EmailChangeController';
@@ -49,9 +50,13 @@ export default function ConfirmEmailChange({
                                 >
                                     Back to profile
                                 </Button>
-                                <Button type="submit" disabled={processing}>
+                                <ActionButton
+                                    type="submit"
+                                    disabled={processing}
+                                    pending={processing}
+                                >
                                     Confirm email change
-                                </Button>
+                                </ActionButton>
                             </CardFooter>
                         </>
                     )}

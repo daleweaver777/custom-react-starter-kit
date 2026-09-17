@@ -1,10 +1,10 @@
+import { ActionButton } from '@/components/action-button';
 import { ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import TwoFactorRecoveryCodes from '@/components/two-factor-recovery-codes';
 import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
 import ConfirmedForm from '@/components/confirmed-form';
 import { useConfirmation } from '@/hooks/use-confirmation';
-import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -44,6 +44,7 @@ export default function ManageTwoFactor(props: Props) {
         errors,
     } = useTwoFactorAuth();
     const [showSetupModal, setShowSetupModal] = useState<boolean>(false);
+    const [continuing, setContinuing] = useState(false);
     const prevTwoFactorEnabled = useRef(twoFactorEnabled);
 
     useEffect(() => {
@@ -107,26 +108,31 @@ export default function ManageTwoFactor(props: Props) {
                             }}
                         >
                             {({ processing }) => (
-                                <Button
+                                <ActionButton
                                     type="submit"
                                     variant="destructive"
                                     disabled={processing}
+                                    pending={processing}
                                 >
                                     Disable 2FA
-                                </Button>
+                                </ActionButton>
                             )}
                         </ConfirmedForm>
                     ) : hasSetupData ? (
-                        <Button
+                        <ActionButton
+                            pending={continuing}
                             onClick={() => {
-                                void confirm().then((confirmed) => {
-                                    if (confirmed) setShowSetupModal(true);
-                                });
+                                setContinuing(true);
+                                void confirm()
+                                    .then((confirmed) => {
+                                        if (confirmed) setShowSetupModal(true);
+                                    })
+                                    .finally(() => setContinuing(false));
                             }}
                         >
                             <ShieldCheck data-icon="inline-start" />
                             Continue setup
-                        </Button>
+                        </ActionButton>
                     ) : (
                         <ConfirmedForm
                             noValidate
@@ -134,9 +140,13 @@ export default function ManageTwoFactor(props: Props) {
                             onSuccess={() => setShowSetupModal(true)}
                         >
                             {({ processing }) => (
-                                <Button type="submit" disabled={processing}>
+                                <ActionButton
+                                    type="submit"
+                                    disabled={processing}
+                                    pending={processing}
+                                >
                                     Enable 2FA
-                                </Button>
+                                </ActionButton>
                             )}
                         </ConfirmedForm>
                     )}

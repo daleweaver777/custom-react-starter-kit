@@ -1,9 +1,9 @@
+import { ActionButton } from '@/components/action-button';
 import { Head, setLayoutProps } from '@inertiajs/react';
 import { Form } from '@/components/inertia-form';
 import { REGEXP_ONLY_DIGITS } from 'input-otp';
 import { useId, useState } from 'react';
 import { textLinkClasses } from '@/components/text-link';
-import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
@@ -151,13 +151,14 @@ export default function TwoFactorChallenge() {
                                 </Field>
                             )}
 
-                            <Button
+                            <ActionButton
                                 type="submit"
                                 className="w-full"
                                 disabled={processing}
+                                pending={processing}
                             >
                                 Log in
-                            </Button>
+                            </ActionButton>
 
                             <div className="text-muted-foreground text-center text-sm">
                                 <span>or you can </span>

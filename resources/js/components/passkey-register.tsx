@@ -1,3 +1,4 @@
+import { ActionButton } from '@/components/action-button';
 import { usePasskeyRegister } from '@laravel/passkeys/react';
 import { Info } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
@@ -16,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { focusFirstFormError } from '@/lib/utils';
 
 type Props = {
-    onSuccess: () => void;
+    onSuccess: () => Promise<void>;
 };
 
 export default function PasskeyRegistration({ onSuccess }: Props) {
@@ -45,12 +46,14 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
     });
 
     const [showForm, setShowForm] = useState(false);
+    const followUp = useRef<Promise<void> | null>(null);
     const { register, isLoading, error, isSupported } = usePasskeyRegister({
         onSuccess: () => {
-            setName('');
-            setShowForm(false);
-            requestAnimationFrame(() => addButtonRef.current?.focus());
-            onSuccess();
+            followUp.current = onSuccess().then(() => {
+                setName('');
+                setShowForm(false);
+                requestAnimationFrame(() => addButtonRef.current?.focus());
+            });
         },
     });
 
@@ -90,7 +93,9 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
             noValidate
             validateBeforeConfirm={['name']}
             onConfirmed={async (data) => {
+                followUp.current = null;
                 await register(data.name.trim());
+                await Promise.resolve(followUp.current);
             }}
             onError={(errors) => focusFirstFormError(formId, errors)}
             className="flex w-full flex-col gap-4"
@@ -137,12 +142,13 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
                         </FieldGroup>
 
                         <div className="flex gap-2">
-                            <Button
+                            <ActionButton
                                 type="submit"
                                 disabled={isLoading || processing}
+                                pending={processing}
                             >
                                 Register passkey
-                            </Button>
+                            </ActionButton>
                             <Button
                                 type="button"
                                 variant="ghost"
@@ -152,6 +158,14 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
                                 Cancel
                             </Button>
                         </div>
+                        {isLoading && (
+                            <p
+                                role="status"
+                                className="text-muted-foreground text-sm"
+                            >
+                                Complete the passkey prompt on your device.
+                            </p>
+                        )}
                     </>
                 );
             }}

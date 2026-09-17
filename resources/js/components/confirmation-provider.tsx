@@ -1,3 +1,4 @@
+import { ActionButton } from '@/components/action-button';
 import { http, HttpResponseError } from '@inertiajs/core';
 import { router, usePage } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
@@ -249,7 +250,12 @@ export default function ConfirmationProvider({ children }: PropsWithChildren) {
 
     return (
         <ConfirmationContext
-            value={{ confirm, enabled: policy.enabled, expiresAt }}
+            value={{
+                confirm,
+                enabled: policy.enabled,
+                expiresAt,
+                prompting: dialog !== null,
+            }}
         >
             {children}
             <Dialog
@@ -283,10 +289,9 @@ export default function ConfirmationProvider({ children }: PropsWithChildren) {
                                 submit: passkeyStore(),
                             }}
                             label="Confirm with passkey"
-                            loadingLabel="Confirming…"
                             separator="Or confirm with password"
                             onVerified={() => {
-                                void checkStatus()
+                                return checkStatus()
                                     .then((confirmed) => {
                                         if (
                                             confirmed &&
@@ -355,17 +360,19 @@ export default function ConfirmationProvider({ children }: PropsWithChildren) {
                             >
                                 Cancel
                             </Button>
-                            <Button
+                            <ActionButton
                                 type="submit"
+                                pauseWhileConfirming={false}
                                 variant={
                                     dialog?.destructive
                                         ? 'destructive'
                                         : 'default'
                                 }
                                 disabled={processing}
+                                pending={processing}
                             >
                                 {dialog?.actionLabel ?? 'Confirm and continue'}
-                            </Button>
+                            </ActionButton>
                         </DialogFooter>
                     </form>
                 </DialogContent>

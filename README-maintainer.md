@@ -61,6 +61,16 @@ After the PR is merged **and an Inertia release containing it is installed**, ch
 
 Before removing the copy, run frontend formatting/lint, TypeScript, and build checks. Verify successful submission and resets, inline validation and focus, confirmation via form refs/Precognition, and the F14 behavior: HTTP/network failures close their owning modal before showing the global alert; validation errors keep the modal open.
 
+## Request Loading Feedback
+
+Use `ActionButton` with the action's `pending` state. It composes the Base UI Button and Spinner, preserves the idle content's dimensions and accessible name, disables immediately, and shows a centered spinner after `LOADING_DELAY` in `resources/js/lib/loading.ts` (250 ms). `RequestButton` supplies pending state for mutations presented as links or menu items. Keep pending true through any follow-up work belonging to the action.
+
+Inertia's built-in progress bar uses the same initial delay in `app.tsx`. Buttons restore their labels when their own operation finishes; the bar completes its fade independently. JSON and passkey operations use their own button feedback, without creating a global progress bar. Inertia navigation following those operations uses the normal bar.
+
+Confirmation prompts pause the originating button's spinner while awaiting input; confirmation submit buttons opt out of that pause. Keep passkey device-prompt hints and `transition-property: none` on the idle content so reduced-motion styles cannot create a label/spinner overlap.
+
+When changing loading feedback, verify normal/delayed requests, dimensions, errors, cancellation, and responsive layouts in a disposable app.
+
 ## Syncing Laravel Upstream
 
 Start from a clean working tree on `main`:

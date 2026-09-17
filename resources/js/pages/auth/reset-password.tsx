@@ -1,8 +1,8 @@
+import { ActionButton } from '@/components/action-button';
 import { Head } from '@inertiajs/react';
 import { Form } from '@/components/inertia-form';
 import { useId } from 'react';
 import PasswordInput from '@/components/password-input';
-import { Button } from '@/components/ui/button';
 import {
     Field,
     FieldError,
@@ -120,14 +120,15 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                             </FieldError>
                         </Field>
 
-                        <Button
+                        <ActionButton
                             type="submit"
                             className="w-full"
                             disabled={processing}
                             data-test="reset-password-button"
+                            pending={processing}
                         >
                             Reset password
-                        </Button>
+                        </ActionButton>
                     </FieldGroup>
                 )}
             </Form>

@@ -8,6 +8,7 @@ import {
     AlertTitle,
 } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/components/action-button';
 
 type Props = {
     title: string;
@@ -27,6 +28,7 @@ export function NotificationAlert({
     const [hovered, setHovered] = useState(false);
     const [focused, setFocused] = useState(false);
     const [closing, setClosing] = useState(false);
+    const [actionPending, setActionPending] = useState(false);
 
     return (
         <Alert
@@ -53,14 +55,18 @@ export function NotificationAlert({
             <AlertDescription>
                 <p>{description}</p>
                 {action && (
-                    <Button
+                    <ActionButton
+                        pending={actionPending}
                         variant="outline"
                         size="sm"
                         className="mt-3"
-                        onClick={action.onClick}
+                        onClick={() => {
+                            setActionPending(true);
+                            action.onClick();
+                        }}
                     >
                         {action.label}
-                    </Button>
+                    </ActionButton>
                 )}
             </AlertDescription>
             <AlertAction>

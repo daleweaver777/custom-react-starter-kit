@@ -12,6 +12,7 @@ export const ConfirmationContext = createContext<{
     confirm: (options?: ConfirmationOptions) => Promise<boolean>;
     enabled: boolean;
     expiresAt: number;
+    prompting: boolean;
 } | null>(null);
 
 export function useConfirmation() {

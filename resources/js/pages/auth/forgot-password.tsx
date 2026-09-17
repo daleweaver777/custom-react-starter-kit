@@ -1,9 +1,9 @@
+import { ActionButton } from '@/components/action-button';
 import { Head } from '@inertiajs/react';
 import { Form } from '@/components/inertia-form';
 import { useId } from 'react';
 import AuthStatus from '@/components/auth-status';
 import TextLink from '@/components/text-link';
-import { Button } from '@/components/ui/button';
 import {
     Field,
     FieldError,
@@ -63,14 +63,15 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                 </FieldError>
                             </Field>
 
-                            <Button
+                            <ActionButton
                                 type="submit"
                                 className="w-full"
                                 disabled={processing}
                                 data-test="email-password-reset-link-button"
+                                pending={processing}
                             >
                                 Email password reset link
-                            </Button>
+                            </ActionButton>
                         </FieldGroup>
                     )}
                 </Form>

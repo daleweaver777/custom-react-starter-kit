@@ -1,8 +1,9 @@
+import { ActionButton } from '@/components/action-button';
 import { Head } from '@inertiajs/react';
 import { Form } from '@/components/inertia-form';
 import AuthStatus from '@/components/auth-status';
 import TextLink from '@/components/text-link';
-import { Button } from '@/components/ui/button';
+import { RequestButton } from '@/components/request-button';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
@@ -24,13 +25,14 @@ export default function VerifyEmail({ status }: { status?: string }) {
             >
                 {({ processing }) => (
                     <>
-                        <Button
+                        <ActionButton
                             type="submit"
                             disabled={processing}
                             variant="secondary"
+                            pending={processing}
                         >
                             Resend verification email
-                        </Button>
+                        </ActionButton>
 
                         <div className="flex flex-col gap-1 text-sm">
                             <p className="text-muted-foreground">
@@ -41,12 +43,13 @@ export default function VerifyEmail({ status }: { status?: string }) {
                             </TextLink>
                         </div>
 
-                        <TextLink
-                            href={logout()}
-                            className="mx-auto block text-sm"
+                        <RequestButton
+                            action={logout()}
+                            variant="link"
+                            className="mx-auto"
                         >
                             Log out
-                        </TextLink>
+                        </RequestButton>
                     </>
                 )}
             </Form>
