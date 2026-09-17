@@ -10,8 +10,10 @@ export type ConfirmationOptions = {
 
 export const ConfirmationContext = createContext<{
     confirm: (options?: ConfirmationOptions) => Promise<boolean>;
+    /* @chisel-password-confirmation */
     enabled: boolean;
     expiresAt: number;
+    /* @end-chisel-password-confirmation */
     prompting: boolean;
 } | null>(null);
 

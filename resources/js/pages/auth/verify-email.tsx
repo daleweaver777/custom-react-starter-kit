@@ -15,7 +15,7 @@ export default function VerifyEmail({ status }: { status?: string }) {
 
             <AuthStatus>
                 {status === 'verification-link-sent' &&
-                    'A new verification link has been sent to the email address you provided during registration.'}
+                    'A new verification link has been sent to your email address.'}
             </AuthStatus>
 
             <Form

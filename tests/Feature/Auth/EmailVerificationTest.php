@@ -4,10 +4,14 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
+/* @chisel-registration */
 use Illuminate\Auth\Notifications\VerifyEmail;
+/* @end-chisel-registration */
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+/* @chisel-registration */
 use Illuminate\Support\Facades\Notification;
+/* @end-chisel-registration */
 use Illuminate\Support\Facades\URL;
 use Laravel\Fortify\Features;
 use Tests\TestCase;
@@ -40,6 +44,7 @@ class EmailVerificationTest extends TestCase
             ->assertRedirect(route('verification.notice'));
     }
 
+    /* @chisel-registration */
     public function test_registration_sends_an_email_verification_notification(): void
     {
         $this->skipUnlessFortifyHas(Features::registration());
@@ -58,6 +63,7 @@ class EmailVerificationTest extends TestCase
         Notification::assertSentTo($user, VerifyEmail::class);
         $this->assertFalse($user->hasVerifiedEmail());
     }
+    /* @end-chisel-registration */
 
     public function test_email_can_be_verified()
     {

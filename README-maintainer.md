@@ -151,11 +151,15 @@ Feature selection can retain email verification, registration, two-factor authen
 
 Session revocation uses Laravel’s native `AuthenticateSession` in the `web` middleware group in `bootstrap/app.php`. Application and package routes using `web`, including public pages and Fortify endpoints, reject a revoked session on its next request. Guests can still access public pages; static assets served directly by the web server do not run Laravel middleware. Keep the default `auth` alias and do not exclude public web routes from session validation. Password updates retain the upstream controller: saving the password changes the fingerprint, so no additional `logoutOtherDevices()` call is needed. The framework must include laravel/framework#61594 to protect sessions left idle immediately after login.
 
-The **Password confirmation** selection controls reauthentication for email-change requests, account deletion, passkey/2FA management, and secret/recovery-code access. Security page views never require confirmation. The shared action dialog reuses Fortify confirmation for five minutes by default (`AUTH_PASSWORD_TIMEOUT=300`); the server enforces the same timeout. Preserve Chisel regions in `confirmation-provider.tsx` so removed password/passkey confirmation routes leave no broken frontend imports. Password changes always require the current password, including when confirmation is disabled. Removing confirmation is an explicit security-policy choice: an authenticated session can perform these other sensitive actions without proving identity again.
+The **Password confirmation** selection controls reauthentication for email-change requests, account deletion, passkey/2FA management, and secret/recovery-code access. Security page views never require confirmation. The shared action dialog reuses Fortify confirmation for five minutes by default (`AUTH_PASSWORD_TIMEOUT=300`); the server enforces the same timeout. Preserve Chisel regions in `confirmation-provider.tsx` and `password-confirmation-provider.tsx` so removed password/passkey confirmation routes leave no broken frontend imports. Password changes always require the current password, including when confirmation is disabled. Removing confirmation is an explicit security-policy choice: an authenticated session can perform these other sensitive actions without proving identity again.
+
+Passkey confirmation is offered only when the authenticated account has a registered passkey and the browser supports WebAuthn. Keep `canConfirmWithPasskey` out of shared user/page props: the modal obtains it from the existing confirmation-status request only when confirmation has expired, and the standalone confirmation page calculates it when rendered. Ordinary navigation and still-valid confirmation checks must not add passkey queries. The status action delegates expiry handling and the `X-Retry-After` header to Fortify. Chisel retains this override only when both password confirmation and passkeys are selected; password-only installations use Fortify's original status action. `PasswordConfirmationTest` covers account ownership, credential addition/removal, disabled passkeys, and query counts. The guest login option remains available because the account is not yet known.
+
+Without password confirmation, Chisel removes the password provider, confirmation middleware and alias, shared confirmation props, rate limiter, and feature-specific tests. `action-confirmation-provider.tsx` retains the basic confirmation dialog for actions that request `always: true`, without password state or confirmation requests. Removing passkeys also removes their availability fields and authentication test helper. `ChiselFeatureCleanupTest` runs the real trimming script in disposable copies for all 32 combinations of the five optional features, with post-install commands stubbed. It checks removed and retained files, feature packages, model capabilities, shared functionality, nested/inline marker consumption, and installer cleanup. Feature-specific tests and data-provider rows are trimmed with their features, rather than left permanently skipped. Chisel removes this maintenance test from generated applications.
 
 Pending-address verification and previous-address notification remain independent of the password-confirmation and registration-verification selections. Keep the email-change migration, pending-address checks, notifications, and UI in every generated application. Existing installations need the `pending_email_changes` migration. Pending requests are limited to one row per user and expire after 30 minutes; expired rows cannot authorize changes and are replaced by subsequent requests or removed when the user cancels or deletes their account.
 
-After Chisel's transformations, formatting, and initial migrations succeed, cleanup removes `AGENTS.md`, `README-maintainer.md`, the maintainer-only `InstallerMigrationHookTest`, the feature-install command, and both Chisel scripts. `README.md` remains. The frontend build follows this cleanup when Node steps are enabled.
+After Chisel's transformations, formatting, and initial migrations succeed, cleanup removes `AGENTS.md`, `README-maintainer.md`, the maintainer-only `InstallerMigrationHookTest` and `ChiselFeatureCleanupTest`, `scripts/test-chisel.py`, the feature-install command, and both Chisel scripts. `README.md` remains. The frontend build follows this cleanup when Node steps are enabled.
 
 In separate disposable copies with dependencies available, test these selections:
 
@@ -166,6 +170,27 @@ php artisan install:features --no-interaction --answers='{"auth_features":["regi
 ```
 
 Run one command per copy; successful trimming deletes the installer itself. Verify feature files and markers, confirm `README.md` survives and both maintainer documents are removed, and run the relevant application checks. Also test the no-Node path when changing installation behavior. Passing explicit `--answers` intentionally bypasses the deferral flag, so it must only be used in the disposable installation.
+
+### Exhaustive feature matrix
+
+Run the quick regression suite after changing feature boundaries:
+
+```bash
+php artisan test --filter=ChiselFeatureCleanupTest
+```
+
+For complete generated-application checks, install source dependencies with hooks deferred, then run the maintainer runner (Python 3 required):
+
+```bash
+python3 scripts/test-chisel.py
+python3 scripts/test-chisel.py --masks 0,10,21,31 --node-installer
+```
+
+The first command checks all 32 selections through the no-Node installer path, then runs the frontend fixer, lint/format checks, TypeScript, production build, the full Composer test script, route-cache checks, and database/route/package assertions. The second exercises real offline npm installation and removal through the normal installer for no features, two mixed selections, and all features. These cases cover both optional npm packages independently and together. Masks use bits in this order: email verification (1), registration (2), 2FA (4), passkeys (8), password confirmation (16).
+
+The runner snapshots the current source, including uncommitted changes, and gives each application its own dependency directories, environment, and SQLite database. It reuses installed dependencies without changing the source checkout or using production credentials. It limits parallel workers to two, saves per-selection logs and a JSON summary in a temporary directory, and removes successful application copies. Failed copies remain for inspection. The Node path requires a populated npm cache; it reports a cache miss instead of accessing the network. Use `--npm-cache /path/to/cache` when the cache is outside npm's default location. The runner preserves PHP runtime configuration and gives isolated static-analysis processes a 512 MB memory limit.
+
+Removing verification also removes its page props, delete-account UI branch, and `verified` middleware. Removing 2FA removes its secret metadata, clipboard/error helpers, and OTP package; removing passkeys removes its empty-state/badge wrappers and browser package. Password-confirmation removal strips identity state and the 2FA expiration timer while retaining explicit action confirmations. Generic UI components supplied as starter-kit building blocks remain; Fortify's transitive PHP packages remain managed by Composer. Email-change verification and password-reset matching fields remain independent of these options.
 
 ### Password-confirmation regression record (2026-09-15)
 

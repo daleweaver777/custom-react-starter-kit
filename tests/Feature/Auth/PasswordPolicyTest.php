@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
+/* @chisel-registration */
 use Laravel\Fortify\Features;
+/* @end-chisel-registration */
 use Mockery;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -21,7 +23,13 @@ class PasswordPolicyTest extends TestCase
     {
         $cases = [];
 
-        foreach (['registration', 'reset', 'update'] as $flow) {
+        foreach ([
+            /* @chisel-registration */
+            'registration',
+            /* @end-chisel-registration */
+            'reset',
+            'update',
+        ] as $flow) {
             foreach (['ASCII' => 'a', 'Unicode' => '🔐'] as $label => $character) {
                 $cases["$flow $label"] = [$flow, 'Aa1!'.str_repeat($character, 251)];
             }
@@ -39,30 +47,35 @@ class PasswordPolicyTest extends TestCase
         $this->assertSame(255, mb_strlen($password));
         $input = ['password' => $password, 'password_confirmation' => $password];
 
-        if ($flow === 'registration') {
-            $this->skipUnlessFortifyHas(Features::registration());
-            $this->post(route('register.store'), [
-                ...$input,
-                'name' => 'Password Policy',
-                'email' => 'policy@example.com',
-            ])->assertSessionHasNoErrors();
-            $user = User::sole();
-        } else {
-            $currentPassword = str_repeat('o', 255);
-            $user = User::factory()->create(['password' => $currentPassword]);
+        switch ($flow) {
+            /* @chisel-registration */
+            case 'registration':
+                $this->skipUnlessFortifyHas(Features::registration());
+                $this->post(route('register.store'), [
+                    ...$input,
+                    'name' => 'Password Policy',
+                    'email' => 'policy@example.com',
+                ])->assertSessionHasNoErrors();
+                $user = User::sole();
+                break;
+                /* @end-chisel-registration */
+            default:
+                $currentPassword = str_repeat('o', 255);
+                $user = User::factory()->create(['password' => $currentPassword]);
 
-            if ($flow === 'reset') {
-                $this->post(route('password.update'), [
-                    ...$input,
-                    'email' => $user->email,
-                    'token' => Password::createToken($user),
-                ])->assertSessionHasNoErrors()->assertRedirect(route('login'));
-            } else {
-                $this->actingAs($user)->put(route('user-password.update'), [
-                    ...$input,
-                    'current_password' => $currentPassword,
-                ])->assertSessionHasNoErrors()->assertRedirect();
-            }
+                if ($flow === 'reset') {
+                    $this->post(route('password.update'), [
+                        ...$input,
+                        'email' => $user->email,
+                        'token' => Password::createToken($user),
+                    ])->assertSessionHasNoErrors()->assertRedirect(route('login'));
+                } else {
+                    $this->actingAs($user)->put(route('user-password.update'), [
+                        ...$input,
+                        'current_password' => $currentPassword,
+                    ])->assertSessionHasNoErrors()->assertRedirect();
+                }
+                break;
         }
 
         $hash = $user->refresh()->password;
@@ -87,23 +100,29 @@ class PasswordPolicyTest extends TestCase
         ])->assertSessionHasNoErrors()->assertRedirect(route('dashboard', absolute: false));
         $this->assertAuthenticatedAs($user);
 
+        /* @chisel-password-confirmation */
         if (config('fortify.password_confirmation', true)) {
             $this->postJson(route('password.confirm.store'), ['password' => $differentSuffix])
                 ->assertUnprocessable()->assertJsonValidationErrors('password');
             $this->postJson(route('password.confirm.store'), ['password' => $password])
                 ->assertCreated();
         }
+        /* @end-chisel-password-confirmation */
     }
 
     public static function oversizedPasswords(): array
     {
         $cases = [];
         $fields = [
+            /* @chisel-registration */
             'registration' => ['password', 'password_confirmation'],
+            /* @end-chisel-registration */
             'reset' => ['password', 'password_confirmation'],
             'update' => ['password', 'password_confirmation', 'current_password'],
             'login' => ['password'],
+            /* @chisel-password-confirmation */
             'confirmation' => ['password'],
+            /* @end-chisel-password-confirmation */
         ];
 
         foreach ($fields as $flow => $passwordFields) {
@@ -128,12 +147,16 @@ class PasswordPolicyTest extends TestCase
         string $password,
         bool $json,
     ): void {
+        /* @chisel-registration */
         if ($flow === 'registration') {
             $this->skipUnlessFortifyHas(Features::registration());
         }
+        /* @end-chisel-registration */
+        /* @chisel-password-confirmation */
         if ($flow === 'confirmation' && ! config('fortify.password_confirmation', true)) {
             $this->markTestSkipped('Password confirmation is not enabled.');
         }
+        /* @end-chisel-password-confirmation */
 
         Notification::fake();
         $user = User::factory()->create();
@@ -145,10 +168,12 @@ class PasswordPolicyTest extends TestCase
         $method = 'POST';
 
         switch ($flow) {
+            /* @chisel-registration */
             case 'registration':
                 $route = 'register.store';
                 $input += ['name' => 'Password Policy', 'email' => 'policy@example.com'];
                 break;
+                /* @end-chisel-registration */
             case 'reset':
                 $route = 'password.update';
                 $input += ['email' => $user->email, 'token' => Password::createToken($user)];
@@ -159,10 +184,12 @@ class PasswordPolicyTest extends TestCase
                 $input['current_password'] = 'password';
                 $this->actingAs($user);
                 break;
+                /* @chisel-password-confirmation */
             case 'confirmation':
                 $route = 'password.confirm.store';
                 $this->actingAs($user);
                 break;
+                /* @end-chisel-password-confirmation */
             default:
                 $route = 'login.store';
                 $input = ['email' => $user->email];
@@ -197,11 +224,19 @@ class PasswordPolicyTest extends TestCase
 
         $this->assertSame($originalHash, $user->refresh()->password);
         $this->assertDatabaseCount('users', 1);
-        if (in_array($flow, ['registration', 'login', 'reset'], true)) {
+        if (in_array($flow, [
+            /* @chisel-registration */
+            'registration',
+            /* @end-chisel-registration */
+            'login',
+            'reset',
+        ], true)) {
             $this->assertGuest();
         }
+        /* @chisel-password-confirmation */
         if ($flow === 'confirmation') {
             $response->assertSessionMissing('auth.password_confirmed_at');
         }
+        /* @end-chisel-password-confirmation */
     }
 }

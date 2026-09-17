@@ -28,7 +28,12 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('throttle:6,1')->name('profile.email.update');
 });
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware([
+    'auth',
+    /* @chisel-email-verification */
+    'verified',
+    /* @end-chisel-email-verification */
+])->group(function () {
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])
         /* @chisel-password-confirmation */
         ->middleware(RequirePassword::class)

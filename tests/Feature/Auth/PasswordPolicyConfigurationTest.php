@@ -8,7 +8,9 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
+/* @chisel-registration */
 use Laravel\Fortify\Features;
+/* @end-chisel-registration */
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -46,10 +48,12 @@ class PasswordPolicyConfigurationTest extends TestCase
             $expected .= ' required: lower; required: upper; required: digit; required: special;';
         }
 
+        /* @chisel-registration */
         if (Features::enabled(Features::registration())) {
             $this->get(route('register'))->assertOk()->assertInertia(fn (Assert $page) => $page
                 ->component('auth/register')->where('passwordRules', $expected));
         }
+        /* @end-chisel-registration */
         $this->get(route('password.reset', ['token' => 'policy-test', 'email' => $user->email]))
             ->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('auth/reset-password')->where('passwordRules', $expected));
@@ -114,9 +118,11 @@ class PasswordPolicyConfigurationTest extends TestCase
             ->assertSessionHasNoErrors()->assertRedirect(route('dashboard', absolute: false));
         $this->assertAuthenticatedAs($user);
 
+        /* @chisel-password-confirmation */
         if (config('fortify.password_confirmation', true)) {
             $this->postJson(route('password.confirm.store'), ['password' => 'old'])->assertCreated();
         }
+        /* @end-chisel-password-confirmation */
 
         $this->putJson(route('user-password.update'), [
             'current_password' => 'old',

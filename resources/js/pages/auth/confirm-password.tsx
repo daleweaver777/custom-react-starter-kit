@@ -19,7 +19,11 @@ import {
 import PasskeyVerify from '@/components/passkey-verify';
 /* @end-chisel-passkeys */
 
-export default function ConfirmPassword() {
+export default function ConfirmPassword(
+    /* @chisel-passkeys */
+    { canConfirmWithPasskey = false }: { canConfirmWithPasskey?: boolean },
+    /* @end-chisel-passkeys */
+) {
     const formId = useId();
 
     return (
@@ -27,14 +31,16 @@ export default function ConfirmPassword() {
             <Head title="Confirm password" />
 
             {/* @chisel-passkeys */}
-            <PasskeyVerify
-                routes={{
-                    options: confirmOptions(),
-                    submit: confirmStore(),
-                }}
-                label="Confirm with passkey"
-                separator="Or confirm with password"
-            />
+            {canConfirmWithPasskey && (
+                <PasskeyVerify
+                    routes={{
+                        options: confirmOptions(),
+                        submit: confirmStore(),
+                    }}
+                    label="Confirm with passkey"
+                    separator="Or confirm with password"
+                />
+            )}
             {/* @end-chisel-passkeys */}
 
             <Form

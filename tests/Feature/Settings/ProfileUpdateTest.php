@@ -3,7 +3,9 @@
 namespace Tests\Feature\Settings;
 
 use App\Models\User;
+/* @chisel-email-verification */
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+/* @end-chisel-email-verification */
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -51,7 +53,9 @@ class ProfileUpdateTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('settings/profile')
+                /* @chisel-email-verification */
                 ->where('mustVerifyEmail', $user instanceof MustVerifyEmail)
+                /* @end-chisel-email-verification */
                 ->where('auth.user.email_verified_at', null));
     }
 
@@ -63,15 +67,19 @@ class ProfileUpdateTest extends TestCase
             ->withSession(['auth.password_confirmed_at' => time()])
             ->deleteJson(route('profile.destroy'));
 
+        /* @chisel-email-verification */
         if ($user instanceof MustVerifyEmail) {
             $response->assertForbidden();
             $this->assertNotNull($user->fresh());
             $this->assertAuthenticatedAs($user);
-        } else {
-            $response->assertRedirect(route('home'));
-            $this->assertNull($user->fresh());
-            $this->assertGuest();
+
+            return;
         }
+        /* @end-chisel-email-verification */
+
+        $response->assertRedirect(route('home'));
+        $this->assertNull($user->fresh());
+        $this->assertGuest();
     }
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()

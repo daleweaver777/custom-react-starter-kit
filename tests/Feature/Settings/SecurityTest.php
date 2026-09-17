@@ -6,7 +6,6 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
-use Laravel\Fortify\Features;
 use Tests\TestCase;
 
 class SecurityTest extends TestCase
@@ -15,18 +14,6 @@ class SecurityTest extends TestCase
 
     public function test_security_page_is_displayed()
     {
-        $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
-
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-        ]);
-        /* @chisel-passkeys */
-        Features::passkeys([
-            'confirmPassword' => true,
-        ]);
-        /* @end-chisel-passkeys */
-
         $user = User::factory()->create();
 
         $this->actingAs($user)
@@ -40,22 +27,17 @@ class SecurityTest extends TestCase
                 ->where('canManagePasskeys', true)
                 ->where('passkeys', [])
                 /* @end-chisel-passkeys */
+                /* @chisel-2fa */
                 ->where('canManageTwoFactor', true)
-                ->where('twoFactorEnabled', false),
+                ->where('twoFactorEnabled', false)
+                /* @end-chisel-2fa */
             );
     }
 
     /* @chisel-password-confirmation */
     public function test_security_page_does_not_require_password_confirmation_when_enabled()
     {
-        $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
-
         $user = User::factory()->create();
-
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-        ]);
 
         $response = $this->actingAs($user)
             ->get(route('security.edit'));
@@ -64,10 +46,8 @@ class SecurityTest extends TestCase
     }
     /* @end-chisel-password-confirmation */
 
-    public function test_security_page_renders_without_two_factor_when_feature_is_disabled()
+    public function test_security_page_renders_when_optional_features_are_disabled()
     {
-        $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
-
         config(['fortify.features' => []]);
 
         $user = User::factory()->create();
@@ -84,9 +64,11 @@ class SecurityTest extends TestCase
                 ->where('canManagePasskeys', false)
                 ->where('passkeys', [])
                 /* @end-chisel-passkeys */
+                /* @chisel-2fa */
                 ->where('canManageTwoFactor', false)
                 ->missing('twoFactorEnabled')
-                ->missing('requiresConfirmation'),
+                ->missing('requiresConfirmation')
+                /* @end-chisel-2fa */
             );
     }
 

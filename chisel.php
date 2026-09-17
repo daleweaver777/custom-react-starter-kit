@@ -107,6 +107,10 @@ return Chisel::script(__DIR__)
             $c->files(
                 'config/fortify.php',
                 'app/Providers/FortifyServiceProvider.php',
+                'app/Concerns/ProfileValidationRules.php',
+                'tests/Feature/Auth/PasswordPolicyTest.php',
+                'tests/Feature/Auth/PasswordPolicyConfigurationTest.php',
+                'tests/Feature/Auth/EmailVerificationTest.php',
                 $paths['login'],
                 $paths['welcome'],
             )->removeSectionMarkers('registration');
@@ -116,6 +120,10 @@ return Chisel::script(__DIR__)
 
             $c->files(
                 'app/Providers/FortifyServiceProvider.php',
+                'app/Concerns/ProfileValidationRules.php',
+                'tests/Feature/Auth/PasswordPolicyTest.php',
+                'tests/Feature/Auth/PasswordPolicyConfigurationTest.php',
+                'tests/Feature/Auth/EmailVerificationTest.php',
                 $paths['login'],
                 $paths['welcome'],
             )->removeSection('registration');
@@ -136,6 +144,11 @@ return Chisel::script(__DIR__)
                 'config/fortify.php',
                 $paths['profile'],
                 'app/Providers/FortifyServiceProvider.php',
+                'app/Http/Controllers/Settings/ProfileController.php',
+                'resources/js/components/delete-user.tsx',
+                'routes/web.php',
+                'routes/settings.php',
+                'tests/Feature/Settings/ProfileUpdateTest.php',
             )->removeSectionMarkers('email-verification');
         },
         else: function (Chisel $c) use ($paths) {
@@ -146,6 +159,11 @@ return Chisel::script(__DIR__)
             $c->files(
                 'config/fortify.php',
                 'app/Providers/FortifyServiceProvider.php',
+                'app/Http/Controllers/Settings/ProfileController.php',
+                'resources/js/components/delete-user.tsx',
+                'routes/web.php',
+                'routes/settings.php',
+                'tests/Feature/Settings/ProfileUpdateTest.php',
                 $paths['profile'],
             )->removeSection('email-verification');
 
@@ -164,6 +182,9 @@ return Chisel::script(__DIR__)
             $c->files(
                 'app/Models/User.php',
                 'database/factories/UserFactory.php',
+                'tests/Feature/Auth/AuthenticationTest.php',
+                'tests/Feature/Settings/SecurityTest.php',
+                'tests/Feature/Settings/PasswordConfirmationPolicyTest.php',
                 $paths['security'],
                 $paths['auth_types'],
                 'config/fortify.php',
@@ -179,12 +200,17 @@ return Chisel::script(__DIR__)
             $c->files(
                 'app/Models/User.php',
                 'database/factories/UserFactory.php',
+                'tests/Feature/Auth/AuthenticationTest.php',
+                'tests/Feature/Settings/SecurityTest.php',
+                'tests/Feature/Settings/PasswordConfirmationPolicyTest.php',
                 'config/fortify.php',
                 'app/Providers/FortifyServiceProvider.php',
                 'app/Http/Controllers/Settings/SecurityController.php',
                 $paths['security'],
                 $paths['auth_types'],
             )->removeSection('2fa');
+
+            $c->file('app/Models/User.php')->removeLinesContaining('$two_factor_');
 
             if ($paths['two_factor_otp_package'] !== null) {
                 chiselRemoveNpmPackages($c, $paths['two_factor_otp_package']);
@@ -208,12 +234,16 @@ return Chisel::script(__DIR__)
                 'app/Http/Controllers/Settings/SecurityController.php',
                 'routes/settings.php',
                 'tests/Feature/Auth/AuthenticationTest.php',
+                'tests/Feature/Auth/PasswordConfirmationTest.php',
+                'app/Http/Controllers/Auth/PasswordConfirmationController.php',
                 'tests/Feature/Settings/SecurityTest.php',
                 $paths['auth_types'],
                 $paths['security'],
                 $paths['login'],
                 $paths['confirm_password'],
                 'resources/js/components/confirmation-provider.tsx',
+                'resources/js/components/password-confirmation-provider.tsx',
+                'tests/Feature/Settings/PasswordConfirmationPolicyTest.php',
             )->removeSectionMarkers('passkeys');
         },
         else: function (Chisel $c) use ($paths) {
@@ -229,12 +259,16 @@ return Chisel::script(__DIR__)
                 'app/Http/Controllers/Settings/SecurityController.php',
                 'routes/settings.php',
                 'tests/Feature/Auth/AuthenticationTest.php',
+                'tests/Feature/Auth/PasswordConfirmationTest.php',
+                'app/Http/Controllers/Auth/PasswordConfirmationController.php',
                 'tests/Feature/Settings/SecurityTest.php',
                 $paths['auth_types'],
                 $paths['security'],
                 $paths['login'],
                 $paths['confirm_password'],
                 'resources/js/components/confirmation-provider.tsx',
+                'resources/js/components/password-confirmation-provider.tsx',
+                'tests/Feature/Settings/PasswordConfirmationPolicyTest.php',
             )->removeSection('passkeys');
 
             chiselRemoveNpmPackages($c, '@laravel/passkeys');
@@ -242,6 +276,7 @@ return Chisel::script(__DIR__)
             $c->files(...[
                 ...$paths['passkey_files'],
                 'app/Http/Responses/PasskeyLoginResponse.php',
+                'tests/Support/PasskeyAuthenticator.php',
                 'database/migrations/2024_01_01_000000_create_passkeys_table.php',
             ])->delete();
         },
@@ -250,11 +285,11 @@ return Chisel::script(__DIR__)
         'auth_features',
         ['2fa', 'passkeys'],
         then: function (Chisel $c) use ($paths) {
-            $c->file($paths['security'])
+            $c->files($paths['security'], 'app/Http/Controllers/Settings/SecurityController.php')
                 ->removeSectionMarkers('2fa-or-passkeys');
         },
         else: function (Chisel $c) use ($paths) {
-            $c->file($paths['security'])
+            $c->files($paths['security'], 'app/Http/Controllers/Settings/SecurityController.php')
                 ->removeSection('2fa-or-passkeys');
         },
     )
@@ -267,6 +302,17 @@ return Chisel::script(__DIR__)
                 'routes/settings.php',
                 'tests/Feature/Settings/SecurityTest.php',
                 'resources/js/components/confirmation-provider.tsx',
+                'resources/js/components/password-confirmation-provider.tsx',
+                'app/Http/Middleware/HandleInertiaRequests.php',
+                'bootstrap/app.php',
+                'tests/Feature/Auth/SessionRevocationTest.php',
+                'tests/Feature/Auth/PasswordPolicyTest.php',
+                'tests/Feature/Auth/PasswordPolicyConfigurationTest.php',
+                'resources/js/components/manage-two-factor.tsx',
+                'tests/Feature/Settings/EmailChangeTest.php',
+                'resources/js/hooks/use-confirmation.ts',
+                'resources/js/components/action-confirmation-provider.tsx',
+                'tests/Feature/Settings/PasswordConfirmationPolicyTest.php',
             )->removeSectionMarkers('password-confirmation');
         },
         else: function (Chisel $c) use ($paths) {
@@ -279,6 +325,17 @@ return Chisel::script(__DIR__)
                 'routes/settings.php',
                 'tests/Feature/Settings/SecurityTest.php',
                 'resources/js/components/confirmation-provider.tsx',
+                'resources/js/components/password-confirmation-provider.tsx',
+                'app/Http/Middleware/HandleInertiaRequests.php',
+                'bootstrap/app.php',
+                'tests/Feature/Auth/SessionRevocationTest.php',
+                'tests/Feature/Auth/PasswordPolicyTest.php',
+                'tests/Feature/Auth/PasswordPolicyConfigurationTest.php',
+                'resources/js/components/manage-two-factor.tsx',
+                'tests/Feature/Settings/EmailChangeTest.php',
+                'resources/js/hooks/use-confirmation.ts',
+                'resources/js/components/action-confirmation-provider.tsx',
+                'tests/Feature/Settings/PasswordConfirmationPolicyTest.php',
             )->removeSection('password-confirmation');
 
             $c->files(
@@ -286,6 +343,8 @@ return Chisel::script(__DIR__)
                 'tests/Feature/Auth/PasswordConfirmationTest.php',
                 'app/Http/Controllers/Auth/PasswordConfirmationController.php',
                 'app/Http/Requests/Auth/ConfirmPasswordRequest.php',
+                'app/Http/Middleware/ConfirmSensitiveAction.php',
+                'resources/js/components/password-confirmation-provider.tsx',
             )->delete();
         },
     )
@@ -311,7 +370,9 @@ return Chisel::script(__DIR__)
         $c->files(
             'AGENTS.md',
             'README-maintainer.md',
+            'scripts/test-chisel.py',
             'tests/Unit/InstallerMigrationHookTest.php',
+            'tests/Unit/ChiselFeatureCleanupTest.php',
             'app/Console/Commands/InstallFeaturesCommand.php',
             'chisel.php',
             'chisel-paths.php',

@@ -66,10 +66,12 @@ class EmailChangeTest extends TestCase
     public function test_precognition_requires_login_and_does_not_bypass_other_sensitive_routes(): void
     {
         $this->withPrecognition()->postJson(route('profile.email.store'), ['email' => 'new@example.com'])->assertUnauthorized();
+        /* @chisel-password-confirmation */
         if (config('fortify.password_confirmation')) {
             $this->actingAs(User::factory()->create())->deleteJson(route('profile.destroy'))->assertStatus(423);
             $this->withHeader('Precognition', 'false')->postJson(route('profile.email.store'), ['email' => 'new@example.com'])->assertStatus(423);
         }
+        /* @end-chisel-password-confirmation */
         $this->assertDatabaseCount('pending_email_changes', 0);
     }
 
@@ -88,6 +90,7 @@ class EmailChangeTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    /* @chisel-password-confirmation */
     public function test_session_alone_cannot_request_a_change_when_confirmation_is_enabled(): void
     {
         if (! config('fortify.password_confirmation')) {
@@ -99,6 +102,7 @@ class EmailChangeTest extends TestCase
         $this->assertDatabaseCount('pending_email_changes', 0);
         Notification::assertNothingSent();
     }
+    /* @end-chisel-password-confirmation */
 
     public function test_pending_address_cannot_receive_recovery_until_confirmed(): void
     {

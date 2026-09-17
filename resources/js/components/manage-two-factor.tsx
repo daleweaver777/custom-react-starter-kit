@@ -25,8 +25,10 @@ export type Props = {
 export default function ManageTwoFactor(props: Props) {
     const {
         confirm,
+        /* @chisel-password-confirmation */
         enabled: confirmationEnabled,
         expiresAt,
+        /* @end-chisel-password-confirmation */
     } = useConfirmation();
     const requiresConfirmation = props.requiresConfirmation ?? false;
     const twoFactorEnabled = props.twoFactorEnabled ?? false;
@@ -55,6 +57,7 @@ export default function ManageTwoFactor(props: Props) {
         prevTwoFactorEnabled.current = twoFactorEnabled;
     }, [twoFactorEnabled, clearTwoFactorAuthData]);
 
+    /* @chisel-password-confirmation */
     useEffect(() => {
         if (!confirmationEnabled) return;
         if (!expiresAt) {
@@ -71,6 +74,7 @@ export default function ManageTwoFactor(props: Props) {
         );
         return () => window.clearTimeout(timer);
     }, [confirmationEnabled, expiresAt, clearTwoFactorAuthData]);
+    /* @end-chisel-password-confirmation */
 
     if (!(props.canManageTwoFactor ?? false)) {
         return null;

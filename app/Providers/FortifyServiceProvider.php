@@ -67,12 +67,20 @@ class FortifyServiceProvider extends ServiceProvider
             $routes = new RouteCollection;
 
             foreach ($router->getRoutes()->getRoutes() as $route) {
+                /* @chisel-password-confirmation */
+                /* @chisel-passkeys */
+                if ($route->getName() === 'password.confirmation') {
+                    $route->uses([PasswordConfirmationController::class, 'status']);
+                }
+                /* @end-chisel-passkeys */
+                /* @end-chisel-password-confirmation */
+
+                /* @chisel-password-confirmation */
                 if ($route->getName() === 'password.confirm.store') {
                     $route->middleware('throttle:password-confirmation');
-                    /* @chisel-password-confirmation */
                     $route->uses([PasswordConfirmationController::class, 'store']);
-                    /* @end-chisel-password-confirmation */
                 }
+                /* @end-chisel-password-confirmation */
 
                 /* @chisel-passkeys */
                 if ($route->getName() === 'passkey.store') {
@@ -84,8 +92,10 @@ class FortifyServiceProvider extends ServiceProvider
                     'password.confirm',
                     'password.confirm.store',
                     'password.confirmation',
+                    /* @chisel-passkeys */
                     'passkey.confirm-options',
                     'passkey.confirm',
+                    /* @end-chisel-passkeys */
                 ], true)) {
                     $routes->add($route);
                 }
@@ -146,7 +156,12 @@ class FortifyServiceProvider extends ServiceProvider
         /* @end-chisel-2fa */
 
         /* @chisel-password-confirmation */
-        Fortify::confirmPasswordView(fn () => Inertia::render('auth/confirm-password'));
+        Fortify::confirmPasswordView(fn (Request $request) => Inertia::render('auth/confirm-password', [
+            /* @chisel-passkeys */
+            'canConfirmWithPasskey' => Features::canManagePasskeys()
+                && ($request->user()?->passkeys()->exists() ?? false),
+            /* @end-chisel-passkeys */
+        ]));
         /* @end-chisel-password-confirmation */
     }
 
@@ -159,10 +174,12 @@ class FortifyServiceProvider extends ServiceProvider
             ? Limit::perMinute(30)->by('validation:'.$request->user()?->getAuthIdentifier())
             : Limit::perMinute(6)->by('submission:'.$request->user()?->getAuthIdentifier()));
 
+        /* @chisel-password-confirmation */
         RateLimiter::for('password-confirmation', fn (Request $request) => [
             Limit::perMinute(5)->by('user:'.$request->user()?->getAuthIdentifier()),
             Limit::perMinute(30)->by('ip:'.$request->ip()),
         ]);
+        /* @end-chisel-password-confirmation */
 
         /* @chisel-2fa */
         RateLimiter::for('two-factor', function (Request $request) {

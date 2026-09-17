@@ -4,20 +4,28 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
-use App\Http\Requests\Settings\TwoFactorAuthenticationRequest;
 use Illuminate\Http\RedirectResponse;
+/* @chisel-2fa-or-passkeys */
+use Illuminate\Http\Request;
+/* @end-chisel-2fa-or-passkeys */
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
+/* @chisel-2fa-or-passkeys */
 use Laravel\Fortify\Features;
+
+/* @end-chisel-2fa-or-passkeys */
 
 class SecurityController extends Controller
 {
     /**
      * Show the user's security settings page.
      */
-    public function edit(TwoFactorAuthenticationRequest $request): Response
-    {
+    public function edit(
+        /* @chisel-2fa-or-passkeys */
+        Request $request
+        /* @end-chisel-2fa-or-passkeys */
+    ): Response {
         $props = [
             /* @chisel-2fa */
             'canManageTwoFactor' => Features::canManageTwoFactorAuthentication(),

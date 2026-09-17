@@ -13,10 +13,12 @@ return [
 
     'two_factor_files' => [
         'resources/js/components/manage-two-factor.tsx',
+        'resources/js/components/alert-error.tsx',
         'resources/js/components/two-factor-setup-modal.tsx',
         'resources/js/components/two-factor-recovery-codes.tsx',
         'resources/js/components/ui/input-otp.tsx',
         'resources/js/hooks/use-two-factor-auth.ts',
+        'resources/js/hooks/use-clipboard.ts',
     ],
 
     'two_factor_otp_package' => 'input-otp',
@@ -26,5 +28,7 @@ return [
         'resources/js/components/passkey-register.tsx',
         'resources/js/components/passkey-verify.tsx',
         'resources/js/components/manage-passkeys.tsx',
+        'resources/js/components/ui/empty.tsx',
+        'resources/js/components/ui/badge.tsx',
     ],
 ];

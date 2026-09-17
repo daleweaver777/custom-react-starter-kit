@@ -1,5 +1,7 @@
 import { ActionButton } from '@/components/action-button';
+/* @chisel-email-verification */
 import { usePage } from '@inertiajs/react';
+/* @end-chisel-email-verification */
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import ConfirmedForm from '@/components/confirmed-form';
 import {
@@ -10,15 +12,46 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+/* @chisel-email-verification */
 import type { Auth } from '@/types';
+/* @end-chisel-email-verification */
 
 export default function DeleteUser() {
+    /* @chisel-email-verification */
     const { auth, mustVerifyEmail } = usePage<{
         auth: Auth;
         mustVerifyEmail: boolean;
     }>().props;
     const requiresEmailVerification =
         mustVerifyEmail && auth.user.email_verified_at === null;
+    /* @end-chisel-email-verification */
+
+    const deleteForm = (
+        <ConfirmedForm
+            {...ProfileController.destroy.form()}
+            options={{ preserveScroll: true }}
+            confirmation={{
+                title: 'Delete account?',
+                description:
+                    'Your account and all of its resources will be permanently deleted. This cannot be undone.',
+                actionLabel: 'Delete account',
+                destructive: true,
+                always: true,
+            }}
+        >
+            {({ processing }) => (
+                <ActionButton
+                    type="submit"
+                    variant="destructive"
+                    disabled={processing}
+                    data-test="delete-user-button"
+                    pending={processing}
+                >
+                    Delete
+                </ActionButton>
+            )}
+        </ConfirmedForm>
+    );
 
     return (
         <Card className="text-destructive ring-destructive/25">
@@ -33,36 +66,20 @@ export default function DeleteUser() {
             </CardContent>
 
             <CardFooter className="border-destructive/20 bg-destructive/5 dark:bg-destructive/10 justify-end">
-                {requiresEmailVerification ? (
-                    <p className="w-full">
-                        Verify your email address before deleting your account.
-                    </p>
-                ) : (
-                    <ConfirmedForm
-                        {...ProfileController.destroy.form()}
-                        options={{ preserveScroll: true }}
-                        confirmation={{
-                            title: 'Delete account?',
-                            description:
-                                'Your account and all of its resources will be permanently deleted. This cannot be undone.',
-                            actionLabel: 'Delete account',
-                            destructive: true,
-                            always: true,
-                        }}
-                    >
-                        {({ processing }) => (
-                            <ActionButton
-                                type="submit"
-                                variant="destructive"
-                                disabled={processing}
-                                data-test="delete-user-button"
-                                pending={processing}
-                            >
-                                Delete
-                            </ActionButton>
-                        )}
-                    </ConfirmedForm>
-                )}
+                {
+                    /* @chisel-email-verification */
+                    requiresEmailVerification ? (
+                        <p className="w-full">
+                            Verify your email address before deleting your
+                            account.
+                        </p>
+                    ) : (
+                        /* @end-chisel-email-verification */
+                        deleteForm
+                        /* @chisel-email-verification */
+                    )
+                    /* @end-chisel-email-verification */
+                }
             </CardFooter>
         </Card>
     );

@@ -4,7 +4,13 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+/* @chisel-passkeys */
+use Illuminate\Support\Facades\DB;
+/* @end-chisel-passkeys */
 use Inertia\Testing\AssertableInertia as Assert;
+/* @chisel-passkeys */
+use Laravel\Fortify\Features;
+/* @end-chisel-passkeys */
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -31,6 +37,105 @@ class PasswordConfirmationTest extends TestCase
 
         $response->assertRedirect(route('login'));
     }
+
+    public function test_confirmation_status_requires_authentication(): void
+    {
+        $this->getJson(route('password.confirmation'))->assertUnauthorized();
+    }
+
+    /* @chisel-passkeys */
+    public function test_passkey_confirmation_availability_follows_the_current_users_credentials(): void
+    {
+        $this->skipUnlessFortifyHas(Features::passkeys());
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+        $this->insertPasskey($other);
+        $this->actingAs($user);
+
+        $this->assertPasskeyAvailability(false);
+        $id = $this->insertPasskey($user);
+        $this->assertPasskeyAvailability(true);
+        DB::table('passkeys')->where('id', $id)->delete();
+        $this->assertPasskeyAvailability(false);
+    }
+
+    public function test_recent_confirmation_skips_passkey_lookup_and_preserves_expiry_header(): void
+    {
+        $this->skipUnlessFortifyHas(Features::passkeys());
+        $this->freezeTime();
+        $user = User::factory()->create();
+        $this->insertPasskey($user);
+        $this->actingAs($user)->withSession(['auth.password_confirmed_at' => now()->subSeconds(42)->timestamp]);
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+
+        $this->getJson(route('password.confirmation'))->assertOk()
+            ->assertExactJson(['confirmed' => true, 'canConfirmWithPasskey' => false])
+            ->assertHeader('X-Retry-After', '42');
+        $this->assertCount(0, $this->passkeyQueries());
+
+        $this->travel((int) config('auth.password_timeout'))->seconds();
+        DB::flushQueryLog();
+        $this->getJson(route('password.confirmation'))->assertOk()
+            ->assertExactJson(['confirmed' => false, 'canConfirmWithPasskey' => true])
+            ->assertHeaderMissing('X-Retry-After');
+        $queries = $this->passkeyQueries();
+        $this->assertCount(1, $queries);
+        $this->assertStringContainsString('exists', strtolower($queries[0]['query']));
+    }
+
+    public function test_ordinary_pages_do_not_query_passkey_availability(): void
+    {
+        $this->actingAs(User::factory()->create());
+        DB::enableQueryLog();
+
+        foreach (['dashboard', 'profile.edit', 'appearance.edit'] as $route) {
+            DB::flushQueryLog();
+            $this->get(route($route))->assertOk();
+            $this->assertCount(0, $this->passkeyQueries(), $route);
+        }
+    }
+
+    public function test_disabled_passkeys_do_not_query_credentials_or_offer_confirmation(): void
+    {
+        config(['fortify.features' => []]);
+        $this->actingAs(User::factory()->create());
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+
+        $this->assertPasskeyAvailability(false);
+        $this->assertCount(0, $this->passkeyQueries());
+    }
+
+    private function assertPasskeyAvailability(bool $available): void
+    {
+        $this->getJson(route('password.confirmation'))->assertOk()
+            ->assertExactJson(['confirmed' => false, 'canConfirmWithPasskey' => $available]);
+        $this->get(route('password.confirm'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('auth/confirm-password')
+                ->where('canConfirmWithPasskey', $available));
+    }
+
+    private function insertPasskey(User $user): int
+    {
+        // Only credential existence is exercised here; ceremony tests use PasskeyAuthenticator.
+        return DB::table('passkeys')->insertGetId([
+            'user_id' => $user->id,
+            'name' => 'Test passkey',
+            'credential_id' => bin2hex(random_bytes(16)),
+            'credential' => '{}',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function passkeyQueries(): array
+    {
+        return array_values(array_filter(DB::getQueryLog(),
+            fn (array $query) => str_contains(strtolower($query['query']), 'passkeys')));
+    }
+    /* @end-chisel-passkeys */
 
     public function test_password_can_be_confirmed_and_its_status_is_available(): void
     {

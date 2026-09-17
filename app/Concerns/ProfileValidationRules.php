@@ -8,6 +8,7 @@ use Illuminate\Validation\Rule;
 
 trait ProfileValidationRules
 {
+    /* @chisel-registration */
     /**
      * Get the validation rules used to validate user profiles.
      *
@@ -20,6 +21,7 @@ trait ProfileValidationRules
             'email' => $this->emailRules($userId),
         ];
     }
+    /* @end-chisel-registration */
 
     /**
      * Get the validation rules used to validate user names.
