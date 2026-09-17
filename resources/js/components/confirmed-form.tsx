@@ -35,6 +35,9 @@ export default function ConfirmedForm({
                 const currentForm = form.current;
                 if (!currentForm) return;
                 const submittedData = JSON.stringify(currentForm.getData());
+                const submitter = (event.nativeEvent as SubmitEvent).submitter;
+                const trigger =
+                    submitter instanceof HTMLElement ? submitter : null;
                 waiting.current = true;
                 setChecking(true);
                 void (async () => {
@@ -82,7 +85,7 @@ export default function ConfirmedForm({
                         JSON.stringify(form.current.getData()) !== submittedData
                     )
                         return;
-                    if (await confirm(confirmation)) {
+                    if (await confirm({ ...confirmation, trigger })) {
                         if (
                             form.current &&
                             JSON.stringify(form.current.getData()) ===

@@ -32,10 +32,10 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden([
     'password',
-    /* @chisel-2fa */
+
     'two_factor_secret',
     'two_factor_recovery_codes',
-    /* @end-chisel-2fa */
+
     'remember_token',
 ])]
 class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
@@ -65,9 +65,9 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            /* @chisel-2fa */
+
             'two_factor_confirmed_at' => 'datetime',
-            /* @end-chisel-2fa */
+
         ];
     }
 }

@@ -5,14 +5,20 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-jobs:
-  ci:
-    runs-on: ubuntu-latest
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    env:
+      LARAVEL_INSTALLER_DEFER_HOOKS: '1'
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -31,8 +37,116 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Setup Application
-        run: composer setup
+      - name: Install source dependencies without trimming
+        run: |
+          cp .env.example .env
+          composer install --no-interaction --prefer-dist
+          npm install --no-package-lock
+          php artisan key:generate
+          php artisan wayfinder:generate --with-form --no-interaction
+          test -f chisel.php
+          test -f phpunit.maintainer.xml
+          test -f phpstan.maintainer.neon
+          test -d tests/Maintainer
 
-      - name: Run CI Checks
+      - name: Build client and server assets
+        run: npm run build:ssr
+
+      - name: Check source and application tests
         run: composer ci:check
+
+      - name: Check React
+        run: npm run doctor
+
+      - name: Run maintainer regressions
+        run: |
+          mkdir -p artifacts
+          composer types:check:maintainer
+          php vendor/bin/phpunit --configuration=phpunit.maintainer.xml --log-junit=artifacts/maintainer.xml
+
+      - name: Retain test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: source-tests
+          path: artifacts/*.xml
+          if-no-files-found: ignore
+          retention-days: 7
+
+  installer:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features: [0, 1, 2, 3]
+    env:
+      LARAVEL_INSTALLER_DEFER_HOOKS: '1'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      - name: Install source dependencies without trimming
+        run: |
+          cp .env.example .env
+          composer install --no-interaction --prefer-dist
+          npm install --no-package-lock
+          test -f chisel.php
+          test -d tests/Maintainer
+
+      - name: Verify installer with Node
+        run: python3 scripts/test-chisel.py --masks ${{ matrix.features }} --node-installer --archive --keep-success --output "$RUNNER_TEMP/installer-node"
+
+      - name: Install browser engines
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Verify generated application in browsers
+        env:
+          FEATURE_MASK: ${{ matrix.features }}
+        run: |
+          printf -v case_name '%02d-node' "$FEATURE_MASK"
+          export STARTER_TEST_APP="$RUNNER_TEMP/installer-node/$case_name/app"
+          export STARTER_BROWSER_OUTPUT="$RUNNER_TEMP/browser-results"
+          npm run test:browser
+
+      - name: Verify development SSR and explicit client rendering
+        if: matrix.features == 3
+        run: |
+          export STARTER_TEST_APP="$RUNNER_TEMP/installer-node/03-node/app"
+          for render_mode in development-ssr production-csr; do
+            export STARTER_TEST_RENDER_MODE="$render_mode"
+            export STARTER_BROWSER_OUTPUT="$RUNNER_TEMP/render-results/$render_mode"
+            npm run test:browser
+          done
+
+      - name: Verify installer without Node
+        if: ${{ !cancelled() }}
+        run: python3 scripts/test-chisel.py --masks ${{ matrix.features }} --output "$RUNNER_TEMP/installer-no-node"
+
+      - name: Retain installer evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: installer-${{ matrix.features }}
+          path: |
+            ${{ runner.temp }}/installer-*/summary.json
+            ${{ runner.temp }}/installer-*/*/result.json
+            ${{ runner.temp }}/installer-*/*/*.log
+            ${{ runner.temp }}/installer-*/*/*phpunit.xml
+            ${{ runner.temp }}/browser-results/
+            ${{ runner.temp }}/render-results/
+          if-no-files-found: ignore
+          retention-days: 7

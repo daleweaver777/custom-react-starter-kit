@@ -7,7 +7,11 @@
  * all Form/useFormContext imports back to @inertiajs/react and delete this file.
  * Use this module's useFormContext with this Form: they share a local context.
  * Keep laravel-precognition for app validation when removing this copy.
- * See README-maintainer.md for verification and es-toolkit cleanup.
+ * Before removing the copy, verify callbacks, validation, resets, and form refs.
+ * Remove es-toolkit only when no other application code imports it.
+ * React Doctor ignores this temporary upstream copy. When switching back to
+ * upstream Form, also remove resources/js/components/inertia-form.ts from
+ * doctor.config.json's ignore.files list in the same change.
  *
  * MIT License
  *
@@ -137,6 +141,10 @@ const FormComponent = forwardRef<FormComponentRef, FormProps>(
         },
         ref,
     ) => {
+        // This upstream compatibility component exposes ref-backed form methods
+        // through a render prop. Keep its manual memoization until replaced upstream.
+        'use no memo';
+
         const getTransformedData = (): Record<string, FormDataConvertible> => {
             const [_url, data] = getUrlAndData();
             return transform(data);
@@ -180,10 +188,13 @@ const FormComponent = forwardRef<FormComponentRef, FormProps>(
         }, [component, instant, action]);
 
         const [isDirty, setIsDirty] = useState(false);
-        const defaultData = useRef<FormData>(new FormData());
+        const [initialData] = useState(() => new FormData());
+        const defaultData = useRef(initialData);
 
         const cancelOnUnmountRef = useRef(cancelOnUnmount);
-        cancelOnUnmountRef.current = cancelOnUnmount;
+        useEffect(() => {
+            cancelOnUnmountRef.current = cancelOnUnmount;
+        }, [cancelOnUnmount]);
 
         const getFormData = (submitter?: FormSubmitter): FormData =>
             formElement.current
@@ -237,6 +248,7 @@ const FormComponent = forwardRef<FormComponentRef, FormProps>(
         };
 
         useEffect(() => {
+            const element = formElement.current!;
             defaultData.current = getFormData();
 
             form.setDefaults(getData());
@@ -248,15 +260,12 @@ const FormComponent = forwardRef<FormComponentRef, FormProps>(
             ];
 
             formEvents.forEach((e) =>
-                formElement.current!.addEventListener(e, updateDirtyState),
+                element.addEventListener(e, updateDirtyState),
             );
 
             return () => {
                 formEvents.forEach((e) =>
-                    formElement.current?.removeEventListener(
-                        e,
-                        updateDirtyState,
-                    ),
+                    element.removeEventListener(e, updateDirtyState),
                 );
 
                 if (cancelOnUnmountRef.current) {
@@ -313,7 +322,7 @@ const FormComponent = forwardRef<FormComponentRef, FormProps>(
             )?.getAttribute('formtarget');
 
             if (formTarget === '_blank' && resolvedMethod === 'get') {
-                window.open(url, '_blank');
+                window.open(url, '_blank', 'noopener');
                 return;
             }
 

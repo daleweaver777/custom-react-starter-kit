@@ -15,7 +15,7 @@ import { update } from '@/routes/password';
 
 type Props = {
     token: string;
-    email: string;
+    email: string | null;
     passwordRules: string;
 };
 
@@ -46,7 +46,7 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                                 type="email"
                                 name="email"
                                 autoComplete="email"
-                                value={email}
+                                value={email ?? ''}
                                 readOnly
                                 aria-invalid={!!errors.email}
                                 aria-describedby={

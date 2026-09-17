@@ -7,4 +7,17 @@
 *.php diff=php
 
 CHANGELOG.md export-ignore
-.github/workflows/browser-tests.yml export-ignore
+AGENTS.md export-ignore
+README-maintainer.md export-ignore
+PRODUCTION-AUDIT-2026-09-14.md export-ignore
+docs/maintainer export-ignore
+.migration export-ignore
+phpunit.maintainer.xml export-ignore
+phpstan.maintainer.neon export-ignore
+doctor.config.json export-ignore
+tests/Maintainer/Installer export-ignore
+tests/Maintainer/Security export-ignore
+tests/Maintainer/Support export-ignore
+tests/Maintainer/Browser export-ignore
+scripts/test-chisel.py export-ignore
+scripts/test-browser.mjs export-ignore

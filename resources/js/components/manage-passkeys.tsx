@@ -44,10 +44,12 @@ const EmptyState = () => {
 export default function ManagePasskeys(props: Props) {
     const passkeys = props.passkeys ?? [];
 
-    const handleDelete = (id: number, onFinish: () => void) => {
-        router.delete(destroy.url(id), {
-            preserveScroll: true,
-            onFinish,
+    const handleDelete = (id: number) => {
+        return new Promise<void>((resolve) => {
+            router.delete(destroy.url(id), {
+                preserveScroll: true,
+                onFinish: () => resolve(),
+            });
         });
     };
 

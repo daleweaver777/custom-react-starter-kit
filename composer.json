@@ -68,6 +68,9 @@
         "types:check": [
             "phpstan analyse"
         ],
+        "types:check:maintainer": [
+            "phpstan analyse --configuration=phpstan.maintainer.neon"
+        ],
         "test": [
             "@php artisan config:clear --ansi",
             "@lint:check",
@@ -92,6 +95,11 @@
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
+        ],
+        "test:maintainer": [
+            "@php artisan config:clear --ansi",
+            "@types:check:maintainer",
+            "@php vendor/bin/phpunit --configuration=phpunit.maintainer.xml"
         ]
     },
     "extra": {

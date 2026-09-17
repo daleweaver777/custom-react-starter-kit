@@ -41,7 +41,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
-            /* @chisel-password-confirmation */
+
             'passwordConfirmation' => [
                 'enabled' => (bool) config('fortify.password_confirmation', true),
                 'timeout' => (int) config('auth.password_timeout', 300),
@@ -51,7 +51,7 @@ class HandleInertiaRequests extends Middleware
                 'statusUrl' => config('fortify.password_confirmation', true) ? route('password.confirmation', [], false) : null,
                 'submitUrl' => config('fortify.password_confirmation', true) ? route('password.confirm.store', [], false) : null,
             ],
-            /* @end-chisel-password-confirmation */
+
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

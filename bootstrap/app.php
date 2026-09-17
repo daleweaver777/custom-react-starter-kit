@@ -1,8 +1,6 @@
 <?php
 
-/* @chisel-password-confirmation */
 use App\Http\Middleware\ConfirmSensitiveAction;
-/* @end-chisel-password-confirmation */
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -20,9 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
-        /* @chisel-password-confirmation */
+
         $middleware->alias(['password.confirm' => ConfirmSensitiveAction::class]);
-        /* @end-chisel-password-confirmation */
 
         $middleware->web(append: [
             AuthenticateSession::class,

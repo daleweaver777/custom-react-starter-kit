@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Auth;
+namespace Tests\Maintainer\Security;
 
 use App\Models\User;
 use Illuminate\Contracts\Validation\UncompromisedVerifier;
@@ -118,11 +118,9 @@ class PasswordPolicyConfigurationTest extends TestCase
             ->assertSessionHasNoErrors()->assertRedirect(route('dashboard', absolute: false));
         $this->assertAuthenticatedAs($user);
 
-        /* @chisel-password-confirmation */
         if (config('fortify.password_confirmation', true)) {
             $this->postJson(route('password.confirm.store'), ['password' => 'old'])->assertCreated();
         }
-        /* @end-chisel-password-confirmation */
 
         $this->putJson(route('user-password.update'), [
             'current_password' => 'old',

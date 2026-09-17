@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Auth;
+namespace Tests\Maintainer\Security;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -100,14 +100,13 @@ class PasswordPolicyTest extends TestCase
         ])->assertSessionHasNoErrors()->assertRedirect(route('dashboard', absolute: false));
         $this->assertAuthenticatedAs($user);
 
-        /* @chisel-password-confirmation */
         if (config('fortify.password_confirmation', true)) {
             $this->postJson(route('password.confirm.store'), ['password' => $differentSuffix])
                 ->assertUnprocessable()->assertJsonValidationErrors('password');
             $this->postJson(route('password.confirm.store'), ['password' => $password])
                 ->assertCreated();
         }
-        /* @end-chisel-password-confirmation */
+
     }
 
     public static function oversizedPasswords(): array
@@ -120,9 +119,9 @@ class PasswordPolicyTest extends TestCase
             'reset' => ['password', 'password_confirmation'],
             'update' => ['password', 'password_confirmation', 'current_password'],
             'login' => ['password'],
-            /* @chisel-password-confirmation */
+
             'confirmation' => ['password'],
-            /* @end-chisel-password-confirmation */
+
         ];
 
         foreach ($fields as $flow => $passwordFields) {
@@ -152,11 +151,10 @@ class PasswordPolicyTest extends TestCase
             $this->skipUnlessFortifyHas(Features::registration());
         }
         /* @end-chisel-registration */
-        /* @chisel-password-confirmation */
+
         if ($flow === 'confirmation' && ! config('fortify.password_confirmation', true)) {
             $this->markTestSkipped('Password confirmation is not enabled.');
         }
-        /* @end-chisel-password-confirmation */
 
         Notification::fake();
         $user = User::factory()->create();
@@ -184,12 +182,12 @@ class PasswordPolicyTest extends TestCase
                 $input['current_password'] = 'password';
                 $this->actingAs($user);
                 break;
-                /* @chisel-password-confirmation */
+
             case 'confirmation':
                 $route = 'password.confirm.store';
                 $this->actingAs($user);
                 break;
-                /* @end-chisel-password-confirmation */
+
             default:
                 $route = 'login.store';
                 $input = ['email' => $user->email];
@@ -233,10 +231,10 @@ class PasswordPolicyTest extends TestCase
         ], true)) {
             $this->assertGuest();
         }
-        /* @chisel-password-confirmation */
+
         if ($flow === 'confirmation') {
             $response->assertSessionMissing('auth.password_confirmed_at');
         }
-        /* @end-chisel-password-confirmation */
+
     }
 }

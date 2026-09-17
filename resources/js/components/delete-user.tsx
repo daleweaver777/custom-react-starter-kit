@@ -16,17 +16,21 @@ import {
 import type { Auth } from '@/types';
 /* @end-chisel-email-verification */
 
-export default function DeleteUser() {
+function DeleteUserAction() {
     /* @chisel-email-verification */
     const { auth, mustVerifyEmail } = usePage<{
         auth: Auth;
         mustVerifyEmail: boolean;
     }>().props;
-    const requiresEmailVerification =
-        mustVerifyEmail && auth.user.email_verified_at === null;
+    if (mustVerifyEmail && auth.user.email_verified_at === null) {
+        return (
+            <p className="w-full">
+                Verify your email address before deleting your account.
+            </p>
+        );
+    }
     /* @end-chisel-email-verification */
-
-    const deleteForm = (
+    return (
         <ConfirmedForm
             {...ProfileController.destroy.form()}
             options={{ preserveScroll: true }}
@@ -52,7 +56,9 @@ export default function DeleteUser() {
             )}
         </ConfirmedForm>
     );
+}
 
+export default function DeleteUser() {
     return (
         <Card className="text-destructive ring-destructive/25">
             <CardHeader>
@@ -66,20 +72,7 @@ export default function DeleteUser() {
             </CardContent>
 
             <CardFooter className="border-destructive/20 bg-destructive/5 dark:bg-destructive/10 justify-end">
-                {
-                    /* @chisel-email-verification */
-                    requiresEmailVerification ? (
-                        <p className="w-full">
-                            Verify your email address before deleting your
-                            account.
-                        </p>
-                    ) : (
-                        /* @end-chisel-email-verification */
-                        deleteForm
-                        /* @chisel-email-verification */
-                    )
-                    /* @end-chisel-email-verification */
-                }
+                <DeleteUserAction />
             </CardFooter>
         </Card>
     );

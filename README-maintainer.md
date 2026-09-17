@@ -1,232 +1,171 @@
-# Starter Kit Maintainer Guide
+# Starter Kit Maintenance
 
-This guide covers maintaining and publishing the starter-kit source. [README.md](README.md) is the guide for developers working on an installed application. [AGENTS.md](AGENTS.md) contains the repository invariants, detailed focus/theme rules, and instructions for coding agents.
+This guide is for the source repository. [README.md](README.md) ships with installed applications. [AGENTS.md](AGENTS.md) defines coding invariants; [CLEANUP-PLAN.md](docs/maintainer/CLEANUP-PLAN.md) tracks current work and evidence. The [production audit](PRODUCTION-AUDIT-2026-09-14.md) preserves earlier findings and decisions.
 
-## Repository Setup
+## Source setup
 
-Keep completed custom work on `main`. Configure `origin` to point to your hosted repository and `upstream` to Laravel's official React starter kit. Inspect the existing remotes before adding or changing one:
+Keep completed work on `main`, your hosted repository as `origin`, and `https://github.com/laravel/react-starter-kit.git` as `upstream`. Check existing remotes before changing them.
 
-```bash
-git remote -v
-```
-
-If `upstream` is missing:
+Never run `composer setup` or `install:features` in this checkout: Chisel deletes source-only files. Explicit `--answers` bypasses hook deferral. Install dependencies with:
 
 ```bash
-git remote add upstream https://github.com/laravel/react-starter-kit.git
-```
-
-If it points elsewhere, correct it with `git remote set-url upstream https://github.com/laravel/react-starter-kit.git`. If `origin` is missing, add it using `git remote add origin YOUR_REPOSITORY_URL`, replacing the placeholder with your repository's Git URL.
-
-Enable recorded conflict-resolution reuse locally:
-
-```bash
-git config rerere.enabled true
-git config rerere.autoupdate true
-git fetch upstream
-```
-
-## Working on the Starter Kit
-
-Use the runtime requirements in [README.md](README.md#requirements). To install PHP dependencies in this source checkout, defer the feature installer:
-
-```bash
+[ -f .env ] || cp .env.example .env
 LARAVEL_INSTALLER_DEFER_HOOKS=1 composer install
 npm install --no-package-lock
-```
-
-The environment-variable syntax above is for POSIX shells. On other shells, set `LARAVEL_INSTALLER_DEFER_HOOKS` to `1` in the environment for the Composer process.
-
-This flag matters because dependency resolution without a Composer lockfile can invoke `post-update-cmd`, which includes `install:features`. Without deferral, that command can trim features and delete installer and maintainer files from the checkout. Do not use `composer run setup` directly on the starter-kit source; reserve the installed-app setup workflow for generated applications.
-
-The disposable CI setup workflow creates `.env` before installing Composer dependencies. Keep this order: dependency installation can invoke Chisel, whose initial migrations need the application's configured environment.
-
-For a new local environment, copy `.env.example` to `.env`, configure the database, and generate an application key with `php artisan key:generate`. With SQLite, create `database/database.sqlite` if needed. Then run:
-
-```bash
-php artisan migrate
 php artisan wayfinder:generate --with-form --no-interaction
-composer run dev
 ```
 
-Never run `install:features` in the maintained checkout to test installation. Use a disposable copy.
+Set the deferral variable in the Composer process environment on non-POSIX shells too. If `APP_KEY` in `.env` is empty, run `php artisan key:generate` before running tests or development; preserve an existing key. For development, configure the database, create the SQLite file if needed, and run migrations before `composer run dev`.
 
-## Temporary Inertia Form Copy
+Do not commit source dependency lockfiles, `vendor`, `node_modules`, or generated Wayfinder helpers. Preserve pre-existing work; remove only artifacts you created during verification. Installed applications should commit their resolved lockfiles.
 
-All application forms use the named import `import { Form } from '@/components/inertia-form'`, provided by [resources/js/components/inertia-form.ts](resources/js/components/inertia-form.ts). This is a copy of the installed `@inertiajs/react` 3.7.0 component with the callback forwarding fix from [Inertia PR #3262](https://github.com/inertiajs/inertia/pull/3262): `onHttpException`, `onNetworkError`, `onBeforeUpdate`, and `onFlash`. It uses the packaged `useForm` hook and preserves the original Form API, validation, reset behavior, Precognition, and imperative ref methods. The original MIT notice is retained in the component.
+## Running all tests
 
-Use `useFormContext` from the same local module for descendants of this Form; the packaged hook reads a different context. Keep new Form imports pointed at the local copy while the workaround is needed. Its `es-toolkit` and `laravel-precognition` imports are declared as direct dependencies so installations do not rely on transitive dependency hoisting.
+Run commands from the source repository root after the setup above. Use PHP with SQLite support and the extensions required by Composer, Node 22.18 or later in the 22.x series, Python 3, and Git. The shell examples use Bash or Zsh. Both installer paths require installed source `vendor` and `node_modules`; the no-Node path blocks Node during installation, then uses it for frontend validation.
 
-After the PR is merged **and an Inertia release containing it is installed**, change the import source for `Form` and any `useFormContext` imports back to `@inertiajs/react`, then remove the local component. Both use named exports, matching Inertia. Remove the direct `es-toolkit` dependency entry if no other app code uses it. Keep `laravel-precognition` as a direct dependency for the app’s validation support, even after removing the local Form copy. Merging the PR alone does not update the installed package.
+### Source checks
 
-Before removing the copy, run frontend formatting/lint, TypeScript, and build checks. Verify successful submission and resets, inline validation and focus, confirmation via form refs/Precognition, and the F14 behavior: HTTP/network failures close their owning modal before showing the global alert; validation errors keep the modal open.
-
-## Request Loading Feedback
-
-Use `ActionButton` with the action's `pending` state. It composes the Base UI Button and Spinner, preserves the idle content's dimensions and accessible name, disables immediately, and shows a centered spinner after `LOADING_DELAY` in `resources/js/lib/loading.ts` (250 ms). `RequestButton` supplies pending state for mutations presented as links or menu items. Keep pending true through any follow-up work belonging to the action.
-
-Inertia's built-in progress bar uses the same initial delay in `app.tsx`. Buttons restore their labels when their own operation finishes; the bar completes its fade independently. JSON and passkey operations use their own button feedback, without creating a global progress bar. Inertia navigation following those operations uses the normal bar.
-
-Confirmation prompts pause the originating button's spinner while awaiting input; confirmation submit buttons opt out of that pause. Keep passkey device-prompt hints and `transition-property: none` on the idle content so reduced-motion styles cannot create a label/spinner overlap.
-
-When changing loading feedback, verify normal/delayed requests, dimensions, errors, cancellation, and responsive layouts in a disposable app.
-
-## Syncing Laravel Upstream
-
-Start from a clean working tree on `main`:
-
-```bash
-git switch main
-git status --short
-git remote get-url upstream
-```
-
-Stop if `git status --short` shows changes. Verify that the upstream URL is Laravel's official repository before proceeding:
-
-```bash
-git fetch upstream
-git branch backup/pre-upstream-sync-YYYY-MM-DD
-git merge --no-ff upstream/main
-```
-
-Replace `YYYY-MM-DD` with the sync date and use a unique backup name if syncing more than once that day. Preserve published history by merging rather than rebasing it.
-
-If there are conflicts, list them with:
-
-```bash
-git diff --name-only --diff-filter=U
-```
-
-Resolve non-UI conflicts in favor of upstream unless they overlap a documented customization. Resolve frontend conflicts individually, combining Laravel's functional changes with the existing Base UI APIs, Nova styles, and Chisel feature boundaries. Never use a whole-directory `--ours` resolution, an `ours` merge driver, or bulk component overwrites.
-
-For changed UI wrappers, inspect the current preset and preview component changes:
+Run this block first, then the installer/browser block below to cover the complete automated suite:
 
 ```bash
 npx shadcn@latest info --json
-npx shadcn@latest add <component> --dry-run
-npx shadcn@latest add <component> --diff
+npm run build:ssr
+composer run ci:check
+composer run test:maintainer
+npm run doctor
 ```
 
-Replace `<component>` with the component being reviewed. Adapt its consumers to the matching Base UI APIs. Agents should follow the installed `shadcn` and `migrate-radix-to-base` skills and update the component and project reports under `.migration/` as required by AGENTS.md.
+The preset must remain Base UI / `base-nova` / `b37ZhrNTs`. `composer ci:check` runs frontend formatting/lint, TypeScript, PHP formatting, application PHPStan, and application PHP tests. `composer test:maintainer` adds maintainer PHPStan and the Security/Installer PHPUnit suites; it does not run the full installation matrix or browser tests. Review React Doctor diagnostics and measure performance before changing render behavior; `npm run doctor` uses the version specified in `package.json`.
 
-Preserve these local customizations:
+### Individual checks and focused PHP tests
 
-- Base UI, Nova styling, and preset `b37ZhrNTs`.
-- The single Tailwind/shadcn/Inter import set, Laravel `@source` directives, semantic theme tokens, and bundled `@fontsource-variable/inter` font. Keep the matching font configuration in `vite.config.ts`.
-- Shared focus geometry, theme-color behavior, and accessibility rules described in [AGENTS.md](AGENTS.md#focus-styles-for-new-ui-components).
-- The `FlashToaster` bridge, Base UI toasts, request-error alerts, their animations, and timed-notification countdown bars.
-- Installer hooks, `chisel.php`, `chisel-paths.php`, `install:features`, and all intentional Chisel feature regions. Markers can share a line with other code or markers.
+| Check                                                          | Command                                                                                           |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Application PHP tests, PHP formatting, and application PHPStan | `composer test`                                                                                   |
+| Application PHP tests only                                     | `php artisan test`                                                                                |
+| All maintainer PHP tests and maintainer PHPStan                | `composer test:maintainer`                                                                        |
+| Maintainer security regressions only                           | `php vendor/bin/phpunit --configuration=phpunit.maintainer.xml --testsuite=Security`              |
+| Maintainer installer regressions only                          | `php vendor/bin/phpunit --configuration=phpunit.maintainer.xml --testsuite=Installer`             |
+| One maintainer test class or method                            | `php vendor/bin/phpunit --configuration=phpunit.maintainer.xml --filter=ChiselFeatureCleanupTest` |
+| Application PHPStan only                                       | `composer types:check`                                                                            |
+| Application and installer PHPStan                              | `composer types:check:maintainer`                                                                 |
+| PHP formatting without changing files                          | `composer lint:check`                                                                             |
+| Frontend formatting/lint without changing files                | `npm run check`                                                                                   |
+| TypeScript                                                     | `npm run types:check`                                                                             |
+| React Doctor                                                   | `npm run doctor`                                                                                  |
+| Client production build                                        | `npm run build`                                                                                   |
+| Client and SSR production builds                               | `npm run build:ssr`                                                                               |
 
-Run the verification below. If the merge stopped for conflicts, stage the resolved files and use `git merge --continue` after verification. If it completed automatically, commit any subsequent fixes separately. Inspect the final diff and working tree before pushing `main` to your `origin`.
+Application tests live in `tests/Feature` and use `phpunit.xml`. Security regressions, installer tests, helpers, and browser tests live in `tests/Maintainer` and are removed from installed apps. Run `php artisan config:clear` before direct PHP test commands if configuration has been cached; the Composer test commands already do this. PHPUnit uses an in-memory SQLite database. To filter an application test, use `php artisan test --filter=AuthenticationTest`. For maintainer tests, pass `phpunit.maintainer.xml` directly to PHPUnit as shown above; do not pass a second configuration through `artisan test`.
 
-## Verification
+`composer types:check:maintainer` runs static analysis alone. Its `phpstan.maintainer.neon` extends the application configuration with `chisel.php` and `chisel-paths.php`; it uses the same rules and level. Use this configuration in your editor when maintaining the starter kit. Chisel removes it and both maintainer Composer commands from installed applications, which keep `phpstan.neon` and `composer types:check`.
 
-The source checkout must retain its installer files throughout these checks:
+### Installer and browser matrix
+
+Only `email-verification` and `registration` are optional; both are selected by default. The `auth_features` answer must be a list of unique supported names. Unknown questions, stale options, and malformed answers fail before trimming. Passkeys, 2FA, password confirmation, pending-email verification, and shared account/security UI remain in all four cases.
+
+| Mask | Retained optional features |
+| ---: | -------------------------- |
+|    0 | Neither                    |
+|    1 | Account email verification |
+|    2 | Registration               |
+|    3 | Both                       |
+
+The following block runs both installation paths for all four selections, production SSR browser tests in Chromium/Firefox/WebKit for each selection, and the separate development SSR/client-rendering checks. It creates disposable apps outside the source checkout and stops on the first failed command:
 
 ```bash
-npx shadcn@latest info --json
+starter_test_run="$(mktemp -d "${TMPDIR:-/tmp}/starter-tests.XXXXXX")"
+printf 'Test output: %s\n' "$starter_test_run"
+(
+    set -e
+    python3 scripts/test-chisel.py --output "$starter_test_run/no-node"
+    python3 scripts/test-chisel.py --node-installer --archive --keep-success --output "$starter_test_run/node"
+    npx playwright install chromium firefox webkit
+
+    for starter_case in 00 01 02 03; do
+        STARTER_TEST_APP="$starter_test_run/node/${starter_case}-node/app" \
+        STARTER_BROWSER_OUTPUT="$starter_test_run/browser/$starter_case/production-ssr" \
+        STARTER_TEST_RENDER_MODE=production-ssr npm run test:browser
+    done
+
+    for starter_mode in development-ssr production-csr; do
+        STARTER_TEST_APP="$starter_test_run/node/03-node/app" \
+        STARTER_BROWSER_OUTPUT="$starter_test_run/browser/03/$starter_mode" \
+        STARTER_TEST_RENDER_MODE="$starter_mode" npm run test:browser
+    done
+)
+```
+
+On Linux, use `npx playwright install --with-deps chromium firefox webkit` for browser system dependencies. No manual PHP, SSR, or Vite server startup is needed. Run browser cases sequentially: they share PHP port 8125 and SSR port 13714; development mode also uses Vite port 5179. `STARTER_TEST_PORT` and `STARTER_TEST_VITE_PORT` override the PHP/Vite ports. Stop conflicting local servers before running.
+
+Both installer paths check application output, schema, cached routes/configuration, frontend checks/builds, application tests, and maintainer security regressions. The archive path also checks release export rules. The runner snapshots current source changes and isolates dependencies, environment, and SQLite. Normal Node installation uses the populated npm cache offline; run source `npm install --no-package-lock` first, or use `--npm-cache /path/to/cache` to select another populated cache. A missing cached package fails the run rather than downloading it.
+
+Each `--output` must be new or empty. `--keep-success` retains generated apps for browser testing; otherwise successful apps are removed. Failed copies, per-case logs, `result.json`, PHPUnit XML reports, and the matrix `summary.json` remain in the output directory. The block assigns each browser run a distinct output directory so later runs preserve earlier failure screenshots and traces. Browser progress appears in the terminal. Inspect a retained trace with `npx playwright show-trace /path/to/trace.zip`.
+
+Production SSR browser tests cover the application flows in all three engines. Virtual WebAuthn tests explicitly skip Firefox/WebKit because those engines lack the equivalent authenticator automation used here. The separate development SSR and production CSR modes run focused Chromium checks of raw guest/authenticated HTML, hydration or client rendering, profile saves, native reset, and edits typed while a save is pending. Development mode starts Vite; production CSR disables SSR and starts no SSR worker.
+
+### Focused installer and browser runs
+
+For a quicker installer run, select one mask; for example, both optional features:
+
+```bash
+python3 scripts/test-chisel.py --masks 3
+python3 scripts/test-chisel.py --masks 3 --node-installer --archive --keep-success
+```
+
+Without `--output`, the runner prints its temporary output directory. Multiple selections use `--masks 0,3`; `python3 scripts/test-chisel.py --help` lists all options. Repeat all four masks when changing optional features or packaging.
+
+To rerun browser checks against the retained mask-3 app from the full run above, choose one command:
+
+```bash
+STARTER_TEST_APP="$starter_test_run/node/03-node/app" npm run test:browser
+STARTER_TEST_APP="$starter_test_run/node/03-node/app" npm run test:browser -- --project=chromium
+STARTER_TEST_APP="$starter_test_run/node/03-node/app" STARTER_TEST_RENDER_MODE=development-ssr npm run test:browser
+STARTER_TEST_APP="$starter_test_run/node/03-node/app" STARTER_TEST_RENDER_MODE=production-csr npm run test:browser
+```
+
+If using a focused installation instead, replace `STARTER_TEST_APP` with its printed `03-node/app` path. Without `STARTER_BROWSER_OUTPUT`, browser artifacts go to the disposable app's `storage/framework/testing/browser-results` and are replaced on the next run; set a fresh output path when retaining evidence.
+
+The harness prepares synthetic accounts, log mail, and its own `database/browser.sqlite`. Never point it at a real application; it refuses the maintained checkout. Browser automation does not certify real hardware passkeys, screen readers, mail delivery, or a Cloud deployment; record those checks separately.
+
+Composer/Laravel installer hooks, no-Node support, and migration ordering are part of the contract. Chisel removes maintainer tests/config/scripts/docs and replaces source CI with the application workflow fixture. `README.md` remains. Check a clean artifact **before** restoring the private security-test harness, so source files cannot hide missing dependencies.
+
+### Running in CI
+
+The [tests workflow](.github/workflows/tests.yml) runs on pull requests and pushes to `main`. To run it on demand, open the repository's **Actions → tests → Run workflow**, select the branch, and run it. The branch must contain the changes you want to test.
+
+The source job runs source checks, application tests, React Doctor, and maintainer analysis/tests. Four installer jobs each check one selection with and without Node and exercise the archive installation in all three browsers. Mask 3 also runs development SSR and production CSR checks. CI uses PHP 8.3 and Node 22.
+
+Download `source-tests` and `installer-0` through `installer-3` artifacts from the workflow run for available JUnit reports, installer logs/summaries, and browser evidence; artifacts are retained for seven days. CI configuration describes intended coverage; only a completed run establishes a pass.
+
+## UI and active compatibility notes
+
+Follow the exact [focus and theme rules](docs/maintainer/focus-styles.md) for UI changes. Preserve Base UI/Nova, bundled Inter, notification animations/countdowns, reduced motion, dialog cancellation, and delayed loading feedback. Keep explicit outside-click dismissal behavior on shared dialogs.
+
+Forms currently import `Form` and `useFormContext` from `@/components/inertia-form`. The local MIT-licensed copy forwards callbacks missing from the installed Inertia release. Replace it only after the installed release includes [Inertia PR #3262](https://github.com/inertiajs/inertia/pull/3262) and submission/reset/ref/Precognition/modal-error regressions pass. Then remove unused direct dependencies; retain `laravel-precognition` while application validation uses it. Keep this compatibility copy close to upstream. Evaluate additional behavior or dependency changes as upstream proposals unless the maintainer explicitly requests local changes.
+
+React Doctor ignores `resources/js/components/inertia-form.ts` while this temporary upstream copy is needed. In the same change that switches `Form`/`useFormContext` imports back to `@inertiajs/react` and deletes the local copy, remove that path from `doctor.config.json` → `ignore.files`, then rerun `npm run doctor`.
+
+Session revocation depends on Laravel's login-time fingerprint fix from laravel/framework#61594. The current development-branch constraint must not be replaced with a stable minimum that predates that fix; track stable-release verification in the production audit.
+
+Laravel Cloud Business is the target. Preserve existing application limits and rely on verified Cloud controls for aggregate IP protection. Extra account/action budgets remain in the [security review](docs/maintainer/security-review.md); do not silently add them as cleanup. The Cloud plan alone does not establish enabled settings or successful deployed verification.
+
+## Upstream synchronization
+
+1. Start with a clean working tree on `main`; verify both remotes.
+2. Enable `git config rerere.enabled true` and `git config rerere.autoupdate true`, then fetch `upstream`.
+3. Create a unique dated backup branch and merge `upstream/main` with `--no-ff`. Do not rebase published history.
+4. Prefer upstream for non-UI conflicts unless they overlap a local customization. Resolve UI conflicts individually, combining upstream behavior with Base UI/Nova and the two-feature installer contract. Never use a bulk overwrite, directory-wide `--ours`, or an `ours` merge driver.
+5. For material wrapper changes, use the shadcn and migration skills. Run `shadcn info` first; inspect component-level `--dry-run` and `--diff` output. Maintain `.migration/<component>.md` and `.migration/project.md` reports.
+6. Check that the merge has not reintroduced Radix imports or `asChild` patterns with the scan below. It must return no matches (exit status 1).
+7. Review `git diff upstream/main -- chisel.php chisel-paths.php` and marker changes deliberately; upstream's feature choices differ from this kit. Run verification, installer/browser checks appropriate to the changes, and inspect the final diff before finishing the merge.
+
+```bash
 rg -n 'radix-ui|@radix-ui|\basChild\b' resources/js package.json
-git diff upstream/main -- chisel.php chisel-paths.php
-git diff upstream/main -- resources/js | rg '@(end-)?chisel-'
-LARAVEL_INSTALLER_DEFER_HOOKS=1 composer install
-php artisan wayfinder:generate --with-form --no-interaction
-npm install --no-package-lock
-npm run check
-npm run types:check
-npm run build
-composer run test
 ```
-
-`shadcn info` must report `base: "base"`, `style: "base-nova"`, and preset `b37ZhrNTs`. The Radix/API scan must produce no output; `rg` exits with status 1 when there are no matches. Review Chisel diffs deliberately: upstream may legitimately change feature boundaries, but markers must not disappear accidentally. Resolve all conflicts and check failures before completing a sync.
-
-This source repository follows upstream's packaging convention: do not commit generated Composer or JavaScript lockfiles, `vendor`, `node_modules`, or generated Wayfinder helpers. After verification, remove untracked generated lockfiles and Wayfinder artifacts, and inspect `git status --short`. The frontend development server or build will regenerate Wayfinder helpers when needed. These source-packaging rules do not apply to applications created from the kit.
-
-Modal dialogs use the shared `Dialog` wrapper, which disables outside-click dismissal by default. Keep Cancel/Close and Escape available so identity confirmation, destructive confirmations, and two-factor setup close deliberately. `AlertDialog` already prevents outside dismissal through Base UI. Navigation sheets use their own dismissal behavior. Preserve this default when updating dialog components from shadcn.
-
-## Installer Behavior and Testing
-
-The Laravel installer uses `extra.laravel.installer.post-create-project` in `composer.json` to run `install:features`. The same command also appears in Composer's `post-update-cmd` for non-deferred dependency setup. These are distinct from Composer's own `post-create-project-cmd`, which generates the application key and creates the SQLite file if absent. Its migration step waits while `chisel.php` is present: Chisel runs initial migrations only after removing unselected feature migrations, so the generated database matches the selected features. After trimming, ordinary Composer project creation can safely run its migration step again.
-
-Feature selection can retain email verification, registration, two-factor authentication, passkeys, and password confirmation. The installer trims unselected features, removes retained-feature markers, formats PHP, and regenerates Wayfinder helpers. Unless `LARAVEL_INSTALLER_NO_NODE=1`, it also installs JavaScript dependencies, removes unused feature packages, runs the frontend fixer, and builds assets.
-
-Session revocation uses Laravel’s native `AuthenticateSession` in the `web` middleware group in `bootstrap/app.php`. Application and package routes using `web`, including public pages and Fortify endpoints, reject a revoked session on its next request. Guests can still access public pages; static assets served directly by the web server do not run Laravel middleware. Keep the default `auth` alias and do not exclude public web routes from session validation. Password updates retain the upstream controller: saving the password changes the fingerprint, so no additional `logoutOtherDevices()` call is needed. The framework must include laravel/framework#61594 to protect sessions left idle immediately after login.
-
-The **Password confirmation** selection controls reauthentication for email-change requests, account deletion, passkey/2FA management, and secret/recovery-code access. Security page views never require confirmation. The shared action dialog reuses Fortify confirmation for five minutes by default (`AUTH_PASSWORD_TIMEOUT=300`); the server enforces the same timeout. Preserve Chisel regions in `confirmation-provider.tsx` and `password-confirmation-provider.tsx` so removed password/passkey confirmation routes leave no broken frontend imports. Password changes always require the current password, including when confirmation is disabled. Removing confirmation is an explicit security-policy choice: an authenticated session can perform these other sensitive actions without proving identity again.
-
-Passkey confirmation is offered only when the authenticated account has a registered passkey and the browser supports WebAuthn. Keep `canConfirmWithPasskey` out of shared user/page props: the modal obtains it from the existing confirmation-status request only when confirmation has expired, and the standalone confirmation page calculates it when rendered. Ordinary navigation and still-valid confirmation checks must not add passkey queries. The status action delegates expiry handling and the `X-Retry-After` header to Fortify. Chisel retains this override only when both password confirmation and passkeys are selected; password-only installations use Fortify's original status action. `PasswordConfirmationTest` covers account ownership, credential addition/removal, disabled passkeys, and query counts. The guest login option remains available because the account is not yet known.
-
-Without password confirmation, Chisel removes the password provider, confirmation middleware and alias, shared confirmation props, rate limiter, and feature-specific tests. `action-confirmation-provider.tsx` retains the basic confirmation dialog for actions that request `always: true`, without password state or confirmation requests. Removing passkeys also removes their availability fields and authentication test helper. `ChiselFeatureCleanupTest` runs the real trimming script in disposable copies for all 32 combinations of the five optional features, with post-install commands stubbed. It checks removed and retained files, feature packages, model capabilities, shared functionality, nested/inline marker consumption, and installer cleanup. Feature-specific tests and data-provider rows are trimmed with their features, rather than left permanently skipped. Chisel removes this maintenance test from generated applications.
-
-Pending-address verification and previous-address notification remain independent of the password-confirmation and registration-verification selections. Keep the email-change migration, pending-address checks, notifications, and UI in every generated application. Existing installations need the `pending_email_changes` migration. Pending requests are limited to one row per user and expire after 30 minutes; expired rows cannot authorize changes and are replaced by subsequent requests or removed when the user cancels or deletes their account.
-
-After Chisel's transformations, formatting, and initial migrations succeed, cleanup removes `AGENTS.md`, `README-maintainer.md`, the maintainer-only `InstallerMigrationHookTest` and `ChiselFeatureCleanupTest`, `scripts/test-chisel.py`, the feature-install command, and both Chisel scripts. `README.md` remains. The frontend build follows this cleanup when Node steps are enabled.
-
-In separate disposable copies with dependencies available, test these selections:
-
-```bash
-php artisan install:features --no-interaction --answers='{"auth_features":["email-verification","registration","2fa","passkeys","password-confirmation"]}'
-php artisan install:features --no-interaction --answers='{"auth_features":[]}'
-php artisan install:features --no-interaction --answers='{"auth_features":["registration","passkeys"]}'
-```
-
-Run one command per copy; successful trimming deletes the installer itself. Verify feature files and markers, confirm `README.md` survives and both maintainer documents are removed, and run the relevant application checks. Also test the no-Node path when changing installation behavior. Passing explicit `--answers` intentionally bypasses the deferral flag, so it must only be used in the disposable installation.
-
-### Exhaustive feature matrix
-
-Run the quick regression suite after changing feature boundaries:
-
-```bash
-php artisan test --filter=ChiselFeatureCleanupTest
-```
-
-For complete generated-application checks, install source dependencies with hooks deferred, then run the maintainer runner (Python 3 required):
-
-```bash
-python3 scripts/test-chisel.py
-python3 scripts/test-chisel.py --masks 0,10,21,31 --node-installer
-```
-
-The first command checks all 32 selections through the no-Node installer path, then runs the frontend fixer, lint/format checks, TypeScript, production build, the full Composer test script, route-cache checks, and database/route/package assertions. The second exercises real offline npm installation and removal through the normal installer for no features, two mixed selections, and all features. These cases cover both optional npm packages independently and together. Masks use bits in this order: email verification (1), registration (2), 2FA (4), passkeys (8), password confirmation (16).
-
-The runner snapshots the current source, including uncommitted changes, and gives each application its own dependency directories, environment, and SQLite database. It reuses installed dependencies without changing the source checkout or using production credentials. It limits parallel workers to two, saves per-selection logs and a JSON summary in a temporary directory, and removes successful application copies. Failed copies remain for inspection. The Node path requires a populated npm cache; it reports a cache miss instead of accessing the network. Use `--npm-cache /path/to/cache` when the cache is outside npm's default location. The runner preserves PHP runtime configuration and gives isolated static-analysis processes a 512 MB memory limit.
-
-Removing verification also removes its page props, delete-account UI branch, and `verified` middleware. Removing 2FA removes its secret metadata, clipboard/error helpers, and OTP package; removing passkeys removes its empty-state/badge wrappers and browser package. Password-confirmation removal strips identity state and the 2FA expiration timer while retaining explicit action confirmations. Generic UI components supplied as starter-kit building blocks remain; Fortify's transitive PHP packages remain managed by Composer. Email-change verification and password-reset matching fields remain independent of these options.
-
-### Password-confirmation regression record (2026-09-15)
-
-The initial policy checks passed with 90 PHP tests and 831 assertions, PHPStan, Pint, frontend lint/format checks, TypeScript, and a production build. Four fresh disposable applications ran Composer installation, the real Chisel command with Node steps enabled, frontend checks/builds, the full Composer test script, route-cache compilation, and packaging checks. Each application had its own dependency directories and SQLite database.
-
-| Installed selection              | Passed tests | Skipped removed-feature tests | Assertions |
-| -------------------------------- | -----------: | ----------------------------: | ---------: |
-| All features                     |           89 |                             0 |        828 |
-| All except password confirmation |           82 |                             3 |        758 |
-| No optional features             |           61 |                             9 |        650 |
-| Password confirmation only       |           67 |                             7 |        701 |
-
-Browser checks on the first two selections used newly registered disposable accounts and log-only mail. They covered direct Security access, email-request confirmation/cancellation, incorrect-password feedback, pending-only email panels, verified-link completion, real TOTP setup, recovery-code viewing/hiding/regeneration, 2FA removal, inline old-password validation and successful password changes, and account deletion. The enabled selection also exercised expired confirmation, recent-confirmation reuse, passkey-registration gating, modal focus restoration, and automatic recovery-code clearing with a temporary 20-second timeout. The shipped timeout remains five minutes. Both disposable accounts were deleted successfully at the end.
-
-`PasswordConfirmationPolicyTest` verifies real signed WebAuthn registration, confirmation, and deletion without mocking the credential validation. Native operating-system authenticator prompts were not automated in the browser check.
-
-Email validation now uses Inertia's built-in Precognition support and Laravel's `EmailChangeRequest` rules before opening identity confirmation. The authenticated validation-only request cannot execute the controller, create pending records, or send mail. Real submissions still require confirmation when enabled and repeat validation. Validation has a separate 30-per-minute user budget; sending retains its six-per-minute user budget.
-
-This follow-up passed 94 source tests (888 assertions), frontend checks/builds, and complete checks in two new Chisel installations with password confirmation selected and unselected. Paired browser checks showed Laravel's required, email-format, and uniqueness messages before confirmation and successful pending requests after valid input. Regression tests cover validation without side effects, authentication, protection against forged Precognition headers on other routes, and independent send budgets. Repeat these cases when editing `ConfirmedForm`.
-
-Password confirmation now validates required/string input on the server and displays Laravel/Fortify's returned password error in the modal. Passkey names use the package's existing registration rules through Precognition before confirmation or authenticator registration. Name checks neither consume registration options nor authorize sensitive actions, and use a separate 30-per-minute validation budget. Chisel removes the password validation middleware when confirmation is omitted.
-
-The password/passkey validation follow-up passed 97 source tests (999 assertions), frontend checks, TypeScript, PHPStan, Pint, and production builds. Four fresh Chisel installations passed all application and packaging checks: all features (96 passed, 996 assertions), confirmation omitted (88 passed, 4 skipped, 904 assertions), no optional features (65 passed, 12 skipped, 705 assertions), and confirmation only (72 passed, 9 skipped, 776 assertions). Browser checks verified inline required/maximum-length passkey name errors with confirmation selected and unselected, valid-name gating when enabled, Laravel's blank/incorrect-password errors, cancellation, and successful password confirmation followed by an email-change request. Signed WebAuthn integration tests continue to verify actual registration, confirmation, and deletion; native authenticator enrollment is not automated.
-
-For future changes, repeat the paired all-features/all-except-password-confirmation browser checks in freshly trimmed applications, and run the minimal/mixed selections to catch references to removed routes, components, or model capabilities. Never run Chisel in this source checkout.
 
 ## Publishing
 
-The Composer package name is `daleweaver777/custom-react-starter-kit`. To publish it, host the repository as `origin` and register the package on Packagist.
+Publish `daleweaver777/custom-react-starter-kit` through your hosted `origin` and Packagist. Keep Composer's project type and installer hooks intact. Verify the actual release archive and a fresh Laravel-installer installation before announcing a release; copied development dependencies alone do not prove clean dependency resolution.
 
-After your package and an installable release are available, users with the Laravel installer can create an app using:
-
-```bash
-laravel new my-app --using=daleweaver777/custom-react-starter-kit
-```
-
-Keep `type: "project"`, Composer hooks, and Laravel installer metadata intact. Verify a fresh installation from the published package before announcing a release.
-
-`README.md` is included in release archives. `README-maintainer.md` and `AGENTS.md` are removed by Chisel from generated applications; retain them in the source repository. Keep the end-user guide self-contained, without links to those removed files. Review README commands and runtime requirements whenever package scripts or dependencies change.
+Release only with current evidence for source checks, all four generated variants, production SSR/hydration, and essential browser flows. Review pending audit/Cloud/device checks and record any limitation explicitly. Keep maintainer files in source, omit them from installed applications, and ensure the shipped README has no links to removed files.

@@ -1,110 +1,68 @@
-# Laravel + React Application
+# Laravel + React Starter Kit
 
-A Laravel 13 application with React 19, TypeScript, Inertia 3, and Tailwind CSS 4. The interface uses shadcn/ui components built on Base UI, the Nova style, and a bundled Inter font.
+Laravel 13, React 19, TypeScript, Inertia 3, and Tailwind CSS 4, with shadcn/ui on Base UI, Nova styling, and Inter.
+
+Registration and account email verification are optional during installation. Password reset, two-factor authentication, passkeys, and password confirmation are included in every installation. Changing an email address always requires verification of the new address.
 
 ## Requirements
 
-- PHP 8.3 or later in the PHP 8 series, with the extensions required by Composer and your database driver.
-- Composer 2.
-- Node.js 22.18 or later in the Node 22 series, or Node.js 24.11 or later, with npm. These versions satisfy the project's Vite and Vite Plus requirements.
-- SQLite for the default database, or a configured MySQL, MariaDB, or PostgreSQL database.
+- PHP 8.3 or later in the PHP 8 series, Composer 2, and the extensions required by your database and Composer dependencies.
+- Node.js 22.18+ in the Node 22 series, or Node.js 24.11+, with npm.
+- SQLite for local development, or a configured database supported by Laravel.
 
-## Getting Started
+## Install and run
 
-Run commands from the application directory.
-
-If the Laravel installer has already installed dependencies and configured the database, start development with:
+Create an application using the Laravel installer:
 
 ```bash
+laravel new my-app --using=daleweaver777/custom-react-starter-kit
+cd my-app
 composer run dev
 ```
 
-Open the address printed by the server, normally [http://localhost:8000](http://localhost:8000).
+Open the address printed by the server, normally [localhost:8000](http://localhost:8000). The development command starts Laravel, the queue listener, Vite, and the log viewer when supported. If Herd already serves Laravel, use `npm run dev` for the frontend alone.
 
-For a fresh clone of an installed application with a new local environment:
+For a fresh clone of an **installed application** in a new local environment:
 
 ```bash
 composer run setup
 composer run dev
 ```
 
-`setup` installs PHP and JavaScript dependencies, creates `.env` if it is missing, generates an application key, runs database migrations, and builds frontend assets. Configure `.env` before running it if you want a database other than the default SQLite database. This command generates a new `APP_KEY` each time, so use the individual dependency, migration, and build commands when updating an existing environment.
+Configure `.env` first if you need a different database. `setup` installs dependencies, creates `.env` when missing, generates an application key, migrates, and builds assets. Run it only for a new environment: it replaces `APP_KEY`. For existing environments, install dependencies and run migrations/builds individually.
 
 ## Configuration
 
-The starting configuration is in `.env.example`:
+Start with `.env.example`:
 
-- `APP_NAME` and `APP_URL` identify the application and its local URL.
-- `DB_CONNECTION=sqlite` uses `database/database.sqlite` by default. Configure the database connection variables when using another database.
-- Sessions, cache, and queues use the database by default, so run migrations before using them.
-- `MAIL_MAILER=log` writes mail to the application log instead of delivering it. Configure a mail provider to send password-reset or verification emails.
+- Set `APP_NAME` and the canonical `APP_URL`.
+- Configure your database; sessions, cache, and queues use it by default. Run `php artisan migrate` after database changes.
+- Configure a mail provider for verification, email changes, and password recovery. The default `MAIL_MAILER=log` writes messages to `storage/logs/laravel.log` instead of sending them.
 
-Authentication includes login and password reset. Registration, email verification, two-factor authentication, passkeys, and password confirmation depend on the options retained during installation.
+Sensitive account actions require recent password or passkey confirmation. `AUTH_PASSWORD_TIMEOUT` controls its duration in seconds (default 300). Password changes always require the current password. An email change leaves the existing sign-in/recovery address active until the new address is confirmed.
 
-Changing a password signs out other browser sessions and revokes their remembered logins. The browser making the change stays signed in with a new session ID and CSRF token. Resetting a forgotten password requires all browsers to sign in again. Revoked sessions are rejected on their next request; this works with any session storage driver.
+Pages live in `resources/js/pages`, shared components in `resources/js/components`, and themes/focus styles in `resources/css/app.css`. Backend routes live in `routes` and application code in `app`.
 
-Profile and Security can be viewed without reauthentication. When **Password confirmation** was selected during installation, changing email, deleting the account, managing passkeys or two-factor authentication, and viewing recovery codes require recent confirmation through a modal. A password or an existing passkey can confirm identity. Confirmation lasts five minutes by default; configure `AUTH_PASSWORD_TIMEOUT` in seconds to change it. Recovery codes are cleared when hidden or when confirmation expires. Without that installer option, these actions do not request a password, although destructive actions still ask for confirmation. **Changing your password always requires the current password**, regardless of the installer option or recent confirmation.
-
-Changing your email always requires verification at the new address. Your existing sign-in and recovery address stays active until you confirm. Verification links expire after 30 minutes; cancelling, replacing the request, or changing/resetting your password invalidates them. The previous address receives a notice after the change. New-address verification remains enabled even if registration email verification was removed. Set `APP_URL` to the application's trusted public URL and configure mail delivery before using this flow.
-
-## Deployment and Password-Reset Links
-
-**Laravel Cloud:** No application-level fix for password-reset host-header poisoning is required for the Cloud.
-
-**Other hosting, including self-managed servers:** Apply host-header protection before deployment. Configure the web server/proxy and Laravel's [trusted hosts](https://laravel.com/framework/docs/13.x/requests#configuring-trusted-hosts) to reject unapproved hostnames, and ensure forwarded host and scheme headers cannot be supplied unchecked by clients. Password-reset links should use an explicitly trusted HTTPS origin. Setting `APP_URL` alone does not enforce this for Laravel's default reset notification. Verify both rejected unknown hosts and the actual URLs in reset emails through the deployed proxy.
-
-## Development
-
-`composer run dev` starts the Laravel development server, queue listener, and frontend development server. It also starts the Pail log viewer when the PHP `pcntl` extension is available.
-
-If Laravel is already served by a local tool such as Herd, you can run only the frontend development server:
-
-```bash
-npm run dev
-```
-
-Build production frontend assets with:
-
-```bash
-npm run build
-```
-
-The Wayfinder plugin generates TypeScript route and controller helpers during frontend development and builds. To generate them explicitly, including before a standalone TypeScript check on a fresh checkout:
+## Tests and builds
 
 ```bash
 php artisan wayfinder:generate --with-form --no-interaction
+npm run build
+composer run ci:check
 ```
 
-## Project Structure
+Wayfinder also generates route helpers during development and builds. `ci:check` runs frontend formatting/lint, TypeScript, PHP formatting/static analysis, and application tests. PHP tests use an in-memory SQLite database. Use `php artisan test` for tests alone, `npm run check:fix` to format frontend code, and `composer run lint` to format PHP.
 
-| Location                   | Purpose                                                 |
-| -------------------------- | ------------------------------------------------------- |
-| `app/`                     | Controllers, requests, models, and application services |
-| `routes/`                  | Laravel routes                                          |
-| `resources/js/pages/`      | Inertia page components                                 |
-| `resources/js/components/` | Shared application and UI components                    |
-| `resources/js/layouts/`    | Page layouts                                            |
-| `resources/css/app.css`    | Tailwind setup, theme tokens, and shared focus styles   |
-| `tests/`                   | PHP unit and feature tests                              |
+## Server-side rendering and deployment
 
-## Interface and Notifications
+Build both client and server assets:
 
-Edit the semantic color tokens in `resources/css/app.css` to customize the light and dark themes. Shared controls use solid 2px focus outlines. Component implementations live in `resources/js/components/ui/`.
+```bash
+npm run build:ssr
+```
 
-Application confirmations use the Laravel flash-to-toast integration. Inertia request failures appear as persistent alerts at the top of the page; expired-session alerts include a Refresh action. Field validation errors remain beside their inputs. Timed notifications display a countdown bar that pauses during hover or keyboard focus.
+On Laravel Cloud, enable **Use Inertia SSR** on the App compute cluster and use `npm run build:ssr` in the build commands. Cloud manages the SSR process. See [Cloud's Inertia SSR setup](https://laravel.com/cloud/docs/compute#inertia-ssr).
 
-## Checks
+For a local production-build check, run `php artisan inertia:start-ssr` in a separate terminal. Check the worker with `php artisan inertia:check-ssr`. Set `INERTIA_SSR_ENABLED=false` for deliberate client rendering; `INERTIA_SSR_URL` defaults to `http://127.0.0.1:13714`.
 
-With dependencies installed and Wayfinder helpers generated:
-
-| Command                    | Purpose                                                                          |
-| -------------------------- | -------------------------------------------------------------------------------- |
-| `npm run check`            | Check frontend formatting and lint rules                                         |
-| `npm run check:fix`        | Apply frontend formatting and lint fixes                                         |
-| `npm run types:check`      | Check TypeScript types                                                           |
-| `composer run lint`        | Format PHP with Pint                                                             |
-| `composer run types:check` | Run PHPStan with Larastan                                                        |
-| `composer run test`        | Clear the configuration cache, check PHP formatting and types, and run PHP tests |
-| `composer run ci:check`    | Run frontend checks, TypeScript checks, and the PHP check/test suite             |
-
-The default PHP test configuration uses an in-memory SQLite database. Run `npm run build` separately to verify the production frontend build.
+Deploy with `APP_ENV=production`, `APP_DEBUG=false`, a canonical HTTPS `APP_URL`, working mail, and a persistent database. Preserve your application key and commit the installed application's dependency lockfiles. Follow [Cloud's deployment configuration](https://laravel.com/cloud/docs/environments#build-and-deploy-commands) and verify enabled [edge protections](https://laravel.com/cloud/docs/network#rate-limiting), your final domain, and actual recovery-email links before launch.

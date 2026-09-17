@@ -2,6 +2,7 @@
 
 require getenv('LARAVEL_INSTALLER_AUTOLOADER') ?: __DIR__.'/vendor/autoload.php';
 
+use Illuminate\Filesystem\Filesystem;
 use Laravel\Chisel\Chisel;
 use Laravel\Chisel\Question;
 use Laravel\Prompts\Support\Logger;
@@ -9,6 +10,7 @@ use Symfony\Component\Process\Process;
 
 use function Laravel\Prompts\task;
 
+/** @param list<string> $command */
 function chiselRun(array $command, string $label): void
 {
     $process = task(
@@ -49,57 +51,36 @@ function chiselSkipsNode(): bool
     );
 }
 
-function chiselRemoveNpmPackages(Chisel $c, string ...$packages): void
-{
-    if (! chiselSkipsNode()) {
-        $c->npm()->remove(...$packages);
-
-        return;
-    }
-
-    foreach ($packages as $package) {
-        $c->file('package.json')->removeLinesContaining('"'.$package.'":');
-    }
-}
-
-/**
- * Framework-specific filenames are supplied by the sibling chisel-paths.php
- * that ships with each Inertia kit (React/Svelte/Vue). After build both files
- * land in the project root.
- *
- * @var array{
- *     login: string,
- *     register: string,
- *     welcome: string,
- *     profile: string,
- *     security: string,
- *     verify_email: string,
- *     two_factor_challenge: string,
- *     confirm_password: string,
- *     auth_types: string,
- *     two_factor_files: list<string>,
- *     two_factor_otp_package: ?string,
- *     passkey_files: list<string>,
- *  } $paths
- */
+/** @var array{login: string, register: string, welcome: string, change_email: string, verify_email: string} $paths */
 $paths = require __DIR__.'/chisel-paths.php';
 
 return Chisel::script(__DIR__)
     ->questions([
         Question::multiselect(
             name: 'auth_features',
-            label: 'Which authentication features would you like to enable?',
+            label: 'Which optional authentication features would you like to enable?',
             options: [
                 'email-verification' => 'Email verification',
                 'registration' => 'Registration',
-                '2fa' => 'Two-factor authentication',
-                'passkeys' => 'Passkeys',
-                'password-confirmation' => 'Password confirmation',
             ],
-            default: ['email-verification', 'registration', '2fa', 'passkeys', 'password-confirmation'],
+            default: ['email-verification', 'registration'],
             hint: 'Use space to select, enter to confirm.',
         ),
     ])
+    ->apply(function (Chisel $c, array $answers): void {
+        if (array_keys($answers) !== ['auth_features']
+            || ! is_array($answers['auth_features'])
+            || ! array_is_list($answers['auth_features'])
+            || count(array_unique($answers['auth_features'], SORT_REGULAR)) !== count($answers['auth_features'])) {
+            throw new InvalidArgumentException('Expected auth_features to be a list of unique feature names.');
+        }
+
+        foreach ($answers['auth_features'] as $feature) {
+            if (! in_array($feature, ['email-verification', 'registration'], true)) {
+                throw new InvalidArgumentException('Only email-verification and registration are optional features.');
+            }
+        }
+    })
     ->selected(
         'auth_features',
         'registration',
@@ -108,8 +89,6 @@ return Chisel::script(__DIR__)
                 'config/fortify.php',
                 'app/Providers/FortifyServiceProvider.php',
                 'app/Concerns/ProfileValidationRules.php',
-                'tests/Feature/Auth/PasswordPolicyTest.php',
-                'tests/Feature/Auth/PasswordPolicyConfigurationTest.php',
                 'tests/Feature/Auth/EmailVerificationTest.php',
                 $paths['login'],
                 $paths['welcome'],
@@ -121,8 +100,6 @@ return Chisel::script(__DIR__)
             $c->files(
                 'app/Providers/FortifyServiceProvider.php',
                 'app/Concerns/ProfileValidationRules.php',
-                'tests/Feature/Auth/PasswordPolicyTest.php',
-                'tests/Feature/Auth/PasswordPolicyConfigurationTest.php',
                 'tests/Feature/Auth/EmailVerificationTest.php',
                 $paths['login'],
                 $paths['welcome'],
@@ -130,7 +107,6 @@ return Chisel::script(__DIR__)
 
             $c->files(
                 'app/Actions/Fortify/CreateNewUser.php',
-                'app/Http/Responses/RegisterResponse.php',
                 $paths['register'],
                 'tests/Feature/Auth/RegistrationTest.php',
             )->delete();
@@ -142,7 +118,7 @@ return Chisel::script(__DIR__)
         then: function (Chisel $c) use ($paths) {
             $c->files(
                 'config/fortify.php',
-                $paths['profile'],
+                $paths['change_email'],
                 'app/Providers/FortifyServiceProvider.php',
                 'app/Http/Controllers/Settings/ProfileController.php',
                 'resources/js/components/delete-user.tsx',
@@ -164,215 +140,77 @@ return Chisel::script(__DIR__)
                 'routes/web.php',
                 'routes/settings.php',
                 'tests/Feature/Settings/ProfileUpdateTest.php',
-                $paths['profile'],
+                $paths['change_email'],
             )->removeSection('email-verification');
 
             $c->files(
-                'app/Http/Responses/VerifyEmailResponse.php',
                 $paths['verify_email'],
                 'tests/Feature/Auth/EmailVerificationTest.php',
                 'tests/Feature/Auth/VerificationNotificationTest.php',
             )->delete();
         },
     )
-    ->selected(
-        'auth_features',
-        '2fa',
-        then: function (Chisel $c) use ($paths) {
-            $c->files(
-                'app/Models/User.php',
-                'database/factories/UserFactory.php',
-                'tests/Feature/Auth/AuthenticationTest.php',
-                'tests/Feature/Settings/SecurityTest.php',
-                'tests/Feature/Settings/PasswordConfirmationPolicyTest.php',
-                $paths['security'],
-                $paths['auth_types'],
-                'config/fortify.php',
-                'app/Providers/FortifyServiceProvider.php',
-                'app/Http/Controllers/Settings/SecurityController.php',
-            )->removeSectionMarkers('2fa');
-        },
-        else: function (Chisel $c) use ($paths) {
-            $c->php('app/Models/User.php')
-                ->removeImport('Laravel\Fortify\TwoFactorAuthenticatable')
-                ->removeTrait('TwoFactorAuthenticatable');
-
-            $c->files(
-                'app/Models/User.php',
-                'database/factories/UserFactory.php',
-                'tests/Feature/Auth/AuthenticationTest.php',
-                'tests/Feature/Settings/SecurityTest.php',
-                'tests/Feature/Settings/PasswordConfirmationPolicyTest.php',
-                'config/fortify.php',
-                'app/Providers/FortifyServiceProvider.php',
-                'app/Http/Controllers/Settings/SecurityController.php',
-                $paths['security'],
-                $paths['auth_types'],
-            )->removeSection('2fa');
-
-            $c->file('app/Models/User.php')->removeLinesContaining('$two_factor_');
-
-            if ($paths['two_factor_otp_package'] !== null) {
-                chiselRemoveNpmPackages($c, $paths['two_factor_otp_package']);
-            }
-
-            $c->files(...[
-                $paths['two_factor_challenge'],
-                ...$paths['two_factor_files'],
-                'database/migrations/2025_08_14_170933_add_two_factor_columns_to_users_table.php',
-                'tests/Feature/Auth/TwoFactorChallengeTest.php',
-            ])->delete();
-        },
-    )
-    ->selected(
-        'auth_features',
-        'passkeys',
-        then: function (Chisel $c) use ($paths) {
-            $c->files(
-                'config/fortify.php',
-                'app/Providers/FortifyServiceProvider.php',
-                'app/Http/Controllers/Settings/SecurityController.php',
-                'routes/settings.php',
-                'tests/Feature/Auth/AuthenticationTest.php',
-                'tests/Feature/Auth/PasswordConfirmationTest.php',
-                'app/Http/Controllers/Auth/PasswordConfirmationController.php',
-                'tests/Feature/Settings/SecurityTest.php',
-                $paths['auth_types'],
-                $paths['security'],
-                $paths['login'],
-                $paths['confirm_password'],
-                'resources/js/components/confirmation-provider.tsx',
-                'resources/js/components/password-confirmation-provider.tsx',
-                'tests/Feature/Settings/PasswordConfirmationPolicyTest.php',
-            )->removeSectionMarkers('passkeys');
-        },
-        else: function (Chisel $c) use ($paths) {
-            $c->php('app/Models/User.php')
-                ->removeImport('Laravel\Fortify\PasskeyAuthenticatable')
-                ->removeImport('Laravel\Fortify\Contracts\PasskeyUser')
-                ->removeTrait('PasskeyAuthenticatable')
-                ->removeInterface('PasskeyUser');
-
-            $c->files(
-                'config/fortify.php',
-                'app/Providers/FortifyServiceProvider.php',
-                'app/Http/Controllers/Settings/SecurityController.php',
-                'routes/settings.php',
-                'tests/Feature/Auth/AuthenticationTest.php',
-                'tests/Feature/Auth/PasswordConfirmationTest.php',
-                'app/Http/Controllers/Auth/PasswordConfirmationController.php',
-                'tests/Feature/Settings/SecurityTest.php',
-                $paths['auth_types'],
-                $paths['security'],
-                $paths['login'],
-                $paths['confirm_password'],
-                'resources/js/components/confirmation-provider.tsx',
-                'resources/js/components/password-confirmation-provider.tsx',
-                'tests/Feature/Settings/PasswordConfirmationPolicyTest.php',
-            )->removeSection('passkeys');
-
-            chiselRemoveNpmPackages($c, '@laravel/passkeys');
-
-            $c->files(...[
-                ...$paths['passkey_files'],
-                'app/Http/Responses/PasskeyLoginResponse.php',
-                'tests/Support/PasskeyAuthenticator.php',
-                'database/migrations/2024_01_01_000000_create_passkeys_table.php',
-            ])->delete();
-        },
-    )
-    ->selectedAny(
-        'auth_features',
-        ['2fa', 'passkeys'],
-        then: function (Chisel $c) use ($paths) {
-            $c->files($paths['security'], 'app/Http/Controllers/Settings/SecurityController.php')
-                ->removeSectionMarkers('2fa-or-passkeys');
-        },
-        else: function (Chisel $c) use ($paths) {
-            $c->files($paths['security'], 'app/Http/Controllers/Settings/SecurityController.php')
-                ->removeSection('2fa-or-passkeys');
-        },
-    )
-    ->selected(
-        'auth_features',
-        'password-confirmation',
-        then: function (Chisel $c) {
-            $c->files(
-                'app/Providers/FortifyServiceProvider.php',
-                'routes/settings.php',
-                'tests/Feature/Settings/SecurityTest.php',
-                'resources/js/components/confirmation-provider.tsx',
-                'resources/js/components/password-confirmation-provider.tsx',
-                'app/Http/Middleware/HandleInertiaRequests.php',
-                'bootstrap/app.php',
-                'tests/Feature/Auth/SessionRevocationTest.php',
-                'tests/Feature/Auth/PasswordPolicyTest.php',
-                'tests/Feature/Auth/PasswordPolicyConfigurationTest.php',
-                'resources/js/components/manage-two-factor.tsx',
-                'tests/Feature/Settings/EmailChangeTest.php',
-                'resources/js/hooks/use-confirmation.ts',
-                'resources/js/components/action-confirmation-provider.tsx',
-                'tests/Feature/Settings/PasswordConfirmationPolicyTest.php',
-            )->removeSectionMarkers('password-confirmation');
-        },
-        else: function (Chisel $c) use ($paths) {
-            $c->file('config/fortify.php')
-                ->replace("'password_confirmation' => true,", "'password_confirmation' => false,")
-                ->replace("'confirmPassword' => true,", "'confirmPassword' => false,");
-
-            $c->files(
-                'app/Providers/FortifyServiceProvider.php',
-                'routes/settings.php',
-                'tests/Feature/Settings/SecurityTest.php',
-                'resources/js/components/confirmation-provider.tsx',
-                'resources/js/components/password-confirmation-provider.tsx',
-                'app/Http/Middleware/HandleInertiaRequests.php',
-                'bootstrap/app.php',
-                'tests/Feature/Auth/SessionRevocationTest.php',
-                'tests/Feature/Auth/PasswordPolicyTest.php',
-                'tests/Feature/Auth/PasswordPolicyConfigurationTest.php',
-                'resources/js/components/manage-two-factor.tsx',
-                'tests/Feature/Settings/EmailChangeTest.php',
-                'resources/js/hooks/use-confirmation.ts',
-                'resources/js/components/action-confirmation-provider.tsx',
-                'tests/Feature/Settings/PasswordConfirmationPolicyTest.php',
-            )->removeSection('password-confirmation');
-
-            $c->files(
-                $paths['confirm_password'],
-                'tests/Feature/Auth/PasswordConfirmationTest.php',
-                'app/Http/Controllers/Auth/PasswordConfirmationController.php',
-                'app/Http/Requests/Auth/ConfirmPasswordRequest.php',
-                'app/Http/Middleware/ConfirmSensitiveAction.php',
-                'resources/js/components/password-confirmation-provider.tsx',
-            )->delete();
-        },
-    )
     ->apply(function (Chisel $c): void {
-        $c->file('composer.json')
-            ->removeLinesContaining('"@php artisan install:features --ansi"');
+        $filesystem = new Filesystem;
+
+        // Keep the generated application's manifest independent of maintenance tooling.
+        $composer = $filesystem->json(__DIR__.'/composer.json', JSON_THROW_ON_ERROR);
+        unset(
+            $composer['scripts']['test:maintainer'],
+            $composer['scripts']['test:installer'],
+            $composer['scripts']['types:check:maintainer'],
+        );
+        $composer['scripts']['post-update-cmd'] = array_values(array_filter(
+            $composer['scripts']['post-update-cmd'],
+            fn (string $command): bool => ! str_contains($command, 'install:features'),
+        ));
+        unset($composer['extra']['laravel']['installer']);
+        file_put_contents(__DIR__.'/composer.json', json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR).PHP_EOL);
+
+        $package = $filesystem->json(__DIR__.'/package.json', JSON_THROW_ON_ERROR);
+        unset($package['scripts']['test:browser'], $package['scripts']['doctor']);
+        unset($package['devDependencies']['@playwright/test']);
+        file_put_contents(__DIR__.'/package.json', json_encode($package, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR).PHP_EOL);
+
+        $workflow = __DIR__.'/tests/Maintainer/Fixtures/application-tests.yml';
+        if (is_file($workflow)) {
+            $filesystem->ensureDirectoryExists(__DIR__.'/.github/workflows');
+            $filesystem->copy($workflow, __DIR__.'/.github/workflows/tests.yml');
+        }
+
+        foreach (['tests/Maintainer', 'docs/maintainer', '.migration'] as $directory) {
+            if (is_dir(__DIR__.'/'.$directory) && ! $filesystem->deleteDirectory(__DIR__.'/'.$directory)) {
+                throw new RuntimeException('Could not remove maintainer directory: '.$directory);
+            }
+        }
+
+        $c->files(
+            'AGENTS.md',
+            'README-maintainer.md',
+            'phpunit.maintainer.xml',
+            'phpstan.maintainer.neon',
+            'doctor.config.json',
+            'playwright.config.ts',
+            'scripts/test-chisel.py',
+            'scripts/test-browser.mjs',
+        )->delete();
 
         chiselRun(['composer', 'lint'], 'Composer Lint');
         chiselRun(['php', 'artisan', 'wayfinder:generate', '--with-form', '--no-interaction'], 'Generate Wayfinder Resources');
 
         if (! chiselSkipsNode()) {
+            // npm reconciles its installed tree after removing maintainer dependencies.
+            $c->npm()->install();
             $c->npm()->run('check:fix');
         }
 
-        // Composer defers the initial migrations until optional migrations have
-        // been trimmed. Use a fresh process to load the generated application.
         if (! file_exists(__DIR__.'/database/database.sqlite')) {
             touch(__DIR__.'/database/database.sqlite');
         }
 
-        chiselRun(['php', 'artisan', 'migrate', '--graceful', '--ansi', '--no-interaction'], 'Migrate Selected Features');
+        chiselRun(['php', 'artisan', 'migrate', '--graceful', '--ansi', '--no-interaction'], 'Migrate Application');
 
         $c->files(
-            'AGENTS.md',
-            'README-maintainer.md',
-            'scripts/test-chisel.py',
-            'tests/Unit/InstallerMigrationHookTest.php',
-            'tests/Unit/ChiselFeatureCleanupTest.php',
             'app/Console/Commands/InstallFeaturesCommand.php',
             'chisel.php',
             'chisel-paths.php',

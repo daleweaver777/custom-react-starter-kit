@@ -1,6 +1,6 @@
 import { ActionButton } from '@/components/action-button';
 import { Eye, EyeOff, RefreshCw } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import AlertError from '@/components/alert-error';
 import ConfirmedForm from '@/components/confirmed-form';
 import {
@@ -28,16 +28,11 @@ export default function TwoFactorRecoveryCodes({
     errors,
     clearRecoveryCodes,
 }: Props) {
-    const [codesAreVisible, setCodesAreVisible] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState(false);
     const [regenerating, setRegenerating] = useState(false);
     const loadingRef = useRef(false);
     const codesSectionRef = useRef<HTMLUListElement | null>(null);
-    const canRegenerateCodes = recoveryCodesList.length > 0 && codesAreVisible;
-
-    useEffect(() => {
-        if (!recoveryCodesList.length) setCodesAreVisible(false);
-    }, [recoveryCodesList]);
+    const codesAreVisible = recoveryCodesList.length > 0;
 
     const loadCodes = async (regenerated = false) => {
         if (loadingRef.current) return;
@@ -48,17 +43,16 @@ export default function TwoFactorRecoveryCodes({
             loadingRef.current = false;
             setIsLoading(false);
         });
-        setCodesAreVisible(loaded);
-
-        requestAnimationFrame(() => {
-            codesSectionRef.current?.scrollIntoView({ block: 'nearest' });
-        });
+        if (loaded) {
+            requestAnimationFrame(() => {
+                codesSectionRef.current?.scrollIntoView({ block: 'nearest' });
+            });
+        }
     };
 
     const toggleCodesVisibility = () => {
         if (codesAreVisible) {
             clearRecoveryCodes();
-            setCodesAreVisible(false);
         } else {
             void loadCodes();
         }
@@ -115,7 +109,7 @@ export default function TwoFactorRecoveryCodes({
             )}
 
             <CardFooter className="flex-wrap justify-end gap-3">
-                {(canRegenerateCodes || regenerating) && (
+                {(codesAreVisible || regenerating) && (
                     <ConfirmedForm
                         {...regenerateRecoveryCodes.form()}
                         options={{ preserveScroll: true }}

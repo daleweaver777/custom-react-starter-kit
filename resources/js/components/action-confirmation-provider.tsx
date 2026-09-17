@@ -44,9 +44,10 @@ export default function ActionConfirmationProvider({
             return new Promise((resolve) => {
                 pending.current = resolve;
                 trigger.current =
-                    document.activeElement instanceof HTMLElement
+                    options.trigger ??
+                    (document.activeElement instanceof HTMLElement
                         ? document.activeElement
-                        : null;
+                        : null);
                 setDialog(options);
             });
         },
@@ -57,10 +58,8 @@ export default function ActionConfirmationProvider({
         <ConfirmationContext
             value={{
                 confirm,
-                /* @chisel-password-confirmation */
                 enabled: false,
                 expiresAt: 0,
-                /* @end-chisel-password-confirmation */
                 prompting: dialog !== null,
             }}
         >

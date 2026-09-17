@@ -11,26 +11,23 @@ import {
 } from '@/components/ui/field';
 import { clearFormErrors, focusFirstFormError } from '@/lib/utils';
 import { store } from '@/routes/password/confirm';
-/* @chisel-passkeys */
 import {
     index as confirmOptions,
     store as confirmStore,
 } from '@/actions/Laravel/Passkeys/Http/Controllers/PasskeyConfirmationController';
 import PasskeyVerify from '@/components/passkey-verify';
-/* @end-chisel-passkeys */
 
-export default function ConfirmPassword(
-    /* @chisel-passkeys */
-    { canConfirmWithPasskey = false }: { canConfirmWithPasskey?: boolean },
-    /* @end-chisel-passkeys */
-) {
+export default function ConfirmPassword({
+    canConfirmWithPasskey = false,
+}: {
+    canConfirmWithPasskey?: boolean;
+}) {
     const formId = useId();
 
     return (
         <>
             <Head title="Confirm password" />
 
-            {/* @chisel-passkeys */}
             {canConfirmWithPasskey && (
                 <PasskeyVerify
                     routes={{
@@ -41,7 +38,6 @@ export default function ConfirmPassword(
                     separator="Or confirm with password"
                 />
             )}
-            {/* @end-chisel-passkeys */}
 
             <Form
                 id={formId}

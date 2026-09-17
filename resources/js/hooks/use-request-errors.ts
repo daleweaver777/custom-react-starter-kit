@@ -15,7 +15,8 @@ export function useRequestErrors() {
     useEffect(() => {
         let nextId = 0;
         const showError = (error: Omit<RequestError, 'id'>) => {
-            setError({ ...error, id: ++nextId });
+            nextId += 1;
+            setError({ ...error, id: nextId });
         };
 
         const removeReportedListener = onRequestError((status) => {

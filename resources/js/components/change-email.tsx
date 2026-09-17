@@ -1,6 +1,12 @@
 import { ActionButton } from '@/components/action-button';
 import { Form } from '@/components/inertia-form';
-import { useId, type ReactNode } from 'react';
+import { useId } from 'react';
+/* @chisel-email-verification */
+import { usePage } from '@inertiajs/react';
+import { RequestButton } from '@/components/request-button';
+import { send } from '@/routes/verification';
+import type { Auth } from '@/types';
+/* @end-chisel-email-verification */
 import EmailChangeController from '@/actions/App/Http/Controllers/Settings/EmailChangeController';
 import InputError from '@/components/input-error';
 import ConfirmedForm from '@/components/confirmed-form';
@@ -20,12 +26,17 @@ import { clearFormErrors, focusFirstFormError } from '@/lib/utils';
 export default function ChangeEmail({
     email,
     pendingEmail,
-    children,
 }: {
     email: string;
     pendingEmail: string | null;
-    children?: ReactNode;
 }) {
+    /* @chisel-email-verification */
+    const { auth, mustVerifyEmail, status } = usePage<{
+        auth: Auth;
+        mustVerifyEmail: boolean;
+        status?: string;
+    }>().props;
+    /* @end-chisel-email-verification */
     const formId = useId();
 
     if (pendingEmail) {
@@ -80,8 +91,34 @@ export default function ChangeEmail({
                 </CardDescription>
             </CardHeader>
 
-            {children && <CardContent>{children}</CardContent>}
+            {/* @chisel-email-verification */}
+            {mustVerifyEmail && auth.user.email_verified_at === null && (
+                <CardContent>
+                    <div>
+                        <p className="text-muted-foreground text-sm">
+                            Your email address is unverified.{' '}
+                            <RequestButton
+                                action={send()}
+                                variant="link"
+                                className="h-auto max-w-full p-0 text-left whitespace-normal underline"
+                            >
+                                Click here to re-send the verification email.
+                            </RequestButton>
+                        </p>
 
+                        {status === 'verification-link-sent' && (
+                            <Alert className="mt-2">
+                                <AlertDescription>
+                                    A new verification link has been sent to
+                                    your email address.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </div>
+                </CardContent>
+            )}
+
+            {/* @end-chisel-email-verification */}
             <ConfirmedForm
                 id={formId}
                 validateBeforeConfirm={['email']}

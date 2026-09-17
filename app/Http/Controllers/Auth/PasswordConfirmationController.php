@@ -4,20 +4,14 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ConfirmPasswordRequest;
-/* @chisel-passkeys */
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-/* @end-chisel-passkeys */
 use Laravel\Fortify\Contracts\PasswordConfirmedResponse;
-/* @chisel-passkeys */
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Http\Controllers\ConfirmedPasswordStatusController;
 
-/* @end-chisel-passkeys */
-
 class PasswordConfirmationController extends Controller
 {
-    /* @chisel-passkeys */
     public function status(Request $request): JsonResponse
     {
         $response = app(ConfirmedPasswordStatusController::class)->show($request);
@@ -32,8 +26,6 @@ class PasswordConfirmationController extends Controller
             'canConfirmWithPasskey' => $canConfirmWithPasskey,
         ]);
     }
-
-    /* @end-chisel-passkeys */
 
     public function store(ConfirmPasswordRequest $request): PasswordConfirmedResponse
     {

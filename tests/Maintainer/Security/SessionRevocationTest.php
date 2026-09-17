@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Auth;
+namespace Tests\Maintainer\Security;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -180,9 +180,9 @@ class SessionRevocationTest extends TestCase
         return [
             'public route' => ['home'],
             'application auth route' => ['dashboard'],
-            /* @chisel-password-confirmation */
+
             'Fortify auth:web route' => ['password.confirmation'],
-            /* @end-chisel-password-confirmation */
+
             'new package auth:web route' => ['test.package'],
         ];
     }

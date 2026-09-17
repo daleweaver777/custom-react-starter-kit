@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit;
+namespace Tests\Maintainer\Installer;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Process\Process;
@@ -11,7 +11,7 @@ class InstallerMigrationHookTest extends TestCase
     {
         $directory = sys_get_temp_dir().'/starter-kit-hooks-'.bin2hex(random_bytes(8));
         mkdir($directory.'/database', 0777, true);
-        copy(__DIR__.'/../../composer.json', $directory.'/composer.json');
+        copy(dirname(__DIR__, 3).'/composer.json', $directory.'/composer.json');
         file_put_contents($directory.'/chisel.php', '<?php');
         file_put_contents($directory.'/database/database.sqlite', 'existing database');
         file_put_contents($directory.'/artisan', <<<'ARTISAN'

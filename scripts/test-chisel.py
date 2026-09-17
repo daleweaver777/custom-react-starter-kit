@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run real installer and application checks for every Chisel feature selection.
+"""Run isolated installer, application, and maintainer checks for all four selections.
 
 Requires the checkout's installed Composer and npm dependencies. Applications are
 created from a snapshot of the current working files, never the Git index alone.
@@ -21,6 +21,7 @@ import signal
 import sqlite3
 import subprocess
 import sys
+import tarfile
 import tempfile
 import threading
 import time
@@ -30,10 +31,8 @@ import xml.etree.ElementTree as ET
 FEATURES = (
     "email-verification",
     "registration",
-    "2fa",
-    "passkeys",
-    "password-confirmation",
 )
+ALWAYS_INSTALLED = {"2fa", "passkeys", "password-confirmation"}
 SOURCE_AREAS = ("app", "bootstrap", "config", "database", "resources", "routes", "tests")
 GENERATED = (
     "resources/js/actions",
@@ -43,6 +42,7 @@ GENERATED = (
     "bootstrap/ssr",
     "public/build",
     "public/hot",
+    "artifacts",
 )
 LOCKFILES = {"composer.lock", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb"}
 ROUTES = {
@@ -80,7 +80,6 @@ FEATURE_FILES = {
         "resources/js/components/passkey-item.tsx", "resources/js/components/passkey-register.tsx",
         "resources/js/components/passkey-verify.tsx", "resources/js/components/manage-passkeys.tsx",
         "resources/js/components/ui/empty.tsx", "resources/js/components/ui/badge.tsx",
-        "tests/Support/PasskeyAuthenticator.php",
         "database/migrations/2024_01_01_000000_create_passkeys_table.php",
     ),
     "password-confirmation": (
@@ -91,6 +90,9 @@ FEATURE_FILES = {
 }
 REMOVED_MAINTAINER_FILES = (
     "AGENTS.md", "README-maintainer.md", "chisel.php", "chisel-paths.php",
+    "PRODUCTION-AUDIT-2026-09-14.md", "docs/maintainer", ".migration",
+    "tests/Maintainer", "phpunit.maintainer.xml", "phpstan.maintainer.neon", "doctor.config.json", "playwright.config.ts",
+    "scripts/test-browser.mjs",
     "app/Console/Commands/InstallFeaturesCommand.php", "tests/Unit/InstallerMigrationHookTest.php",
     "tests/Unit/ChiselFeatureCleanupTest.php", "scripts/test-chisel.py",
 )
@@ -117,6 +119,31 @@ echo json_encode([
     'user_traits' => array_values(class_uses_recursive(App\Models\User::class)),
 ], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR);
 """
+PREPARE_MAINTAINER_PHP = r"""<?php
+require $argv[1].'/vendor/autoload.php';
+$chisel = Laravel\Chisel\Chisel::in($argv[1]);
+$features = json_decode($argv[2], true, 512, JSON_THROW_ON_ERROR);
+$files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($argv[1].'/tests/Maintainer/Security'));
+foreach ($files as $file) {
+    if (! $file->isFile() || $file->getExtension() !== 'php') {
+        continue;
+    }
+    $relative = substr($file->getPathname(), strlen($argv[1]) + 1);
+    foreach (['registration', 'email-verification'] as $feature) {
+        $selected = $chisel->file($relative);
+        if (in_array($feature, $features, true)) {
+            $selected->removeSectionMarkers($feature);
+        } else {
+            $selected->removeSection($feature);
+        }
+    }
+}
+foreach (['registration' => 'RegistrationTest.php', 'email-verification' => 'EmailVerificationTest.php'] as $feature => $file) {
+    if (! in_array($feature, $features, true)) {
+        $chisel->file('tests/Maintainer/Security/'.$file)->delete();
+    }
+}
+"""
 
 
 def require(condition, message):
@@ -132,9 +159,9 @@ def parse_masks(value):
     try:
         masks = sorted(set(int(item.strip()) for item in value.split(",")))
     except ValueError as error:
-        raise argparse.ArgumentTypeError("Use comma-separated masks from 0 through 31.") from error
-    if not masks or any(mask < 0 or mask > 31 for mask in masks):
-        raise argparse.ArgumentTypeError("Masks must be from 0 through 31.")
+        raise argparse.ArgumentTypeError("Use comma-separated masks from 0 through 3.") from error
+    if not masks or any(mask < 0 or mask > 3 for mask in masks):
+        raise argparse.ArgumentTypeError("Masks must be from 0 through 3.")
     return masks
 
 
@@ -160,7 +187,7 @@ def snapshot_source(root, destination):
             continue
         if relative.startswith(("vendor/", "node_modules/", ".env")) and relative != ".env.example":
             continue
-        if any(relative == prefix or relative.startswith(prefix + "/") for prefix in GENERATED):
+        if source.name != ".gitignore" and any(relative == prefix or relative.startswith(prefix + "/") for prefix in GENERATED):
             continue
         if source.suffix in (".sqlite", ".sqlite3", ".db"):
             continue
@@ -172,6 +199,30 @@ def snapshot_source(root, destination):
     for relative in ("bootstrap/cache", "storage/framework/cache/data", "storage/framework/sessions", "storage/framework/views", "storage/logs"):
         (destination / relative).mkdir(parents=True, exist_ok=True)
     return {"files": count, "sha256": digest.hexdigest()}
+
+
+def archive_source(snapshot, output):
+    """Apply real Git export attributes to a private tree without making a commit."""
+    repository = output / "archive-source"
+    shutil.copytree(snapshot, repository)
+    subprocess.run(["git", "init", "--quiet", str(repository)], check=True)
+    subprocess.run(["git", "add", "--force", "--all"], cwd=repository, check=True)
+    tree = subprocess.check_output(["git", "write-tree"], cwd=repository, text=True).strip()
+    archive = output / "starter-kit.tar"
+    subprocess.run(["git", "archive", "--format=tar", "--output=" + str(archive), tree], cwd=repository, check=True)
+    destination = output / "release"
+    destination.mkdir()
+    with tarfile.open(archive) as bundle:
+        for member in bundle.getmembers():
+            require(not Path(member.name).is_absolute() and ".." not in Path(member.name).parts, "Unsafe archive path")
+            require(member.isfile() or member.isdir(), "Unexpected link in release archive")
+        bundle.extractall(destination)
+    for relative in ("README.md", "chisel.php", "chisel-paths.php", "phpstan.neon", "bootstrap/cache/.gitignore", "tests/Maintainer/Fixtures/application-tests.yml"):
+        require((destination / relative).is_file(), f"Required installation file missing from release archive: {relative}")
+    for relative in ("AGENTS.md", "README-maintainer.md", "phpstan.maintainer.neon", "tests/Maintainer/Security", "tests/Maintainer/Installer", "docs/maintainer", "PRODUCTION-AUDIT-2026-09-14.md"):
+        require(not (destination / relative).exists(), f"Maintainer file included in release archive: {relative}")
+    shutil.rmtree(repository)
+    return destination, {"tree": tree, "path": str(archive)}
 
 
 def isolated_environment(temp_directory, node_installer, npm_cache):
@@ -220,10 +271,11 @@ def configure_application(app):
 
 
 class Runner:
-    def __init__(self, options, output, snapshot):
+    def __init__(self, options, output, snapshot, installation_source):
         self.options = options
         self.output = output
         self.snapshot = snapshot
+        self.installation_source = installation_source
         self.processes = set()
         self.lock = threading.Lock()
         self.stopping = threading.Event()
@@ -278,6 +330,28 @@ class Runner:
         require(record["exit_code"] == 0, f"{name} exited {record['exit_code']}; see {log}")
         return log
 
+    def maintainer_checks(self, result, app, directory, environment, features):
+        # Keep the asserted distributable clean. Deep security regressions run in
+        # a separate copy with maintainer files restored from the same snapshot.
+        validation = directory / "validation"
+        clone_directory(app, validation)
+        shutil.copytree(self.snapshot / "tests/Maintainer", validation / "tests/Maintainer")
+        shutil.copy2(self.snapshot / "phpunit.maintainer.xml", validation / "phpunit.maintainer.xml")
+        prepare = directory / "prepare-maintainer.php"
+        prepare.write_text(PREPARE_MAINTAINER_PHP)
+        self.command(result, "12-prepare-maintainer", ["php", str(prepare), str(validation), json.dumps(sorted(features))], validation, environment)
+        self.command(result, "13-maintainer-autoload", ["composer", "dump-autoload", "--no-scripts", "--no-interaction"], validation, environment)
+        junit = directory / "maintainer-phpunit.xml"
+        self.command(result, "14-maintainer-security", ["php", "vendor/bin/phpunit", "--configuration=phpunit.maintainer.xml", "--testsuite=Security", "--log-junit=" + str(junit)], validation, environment)
+        testcases = ET.parse(junit).findall(".//testcase")
+        require(testcases, "No maintainer security tests executed")
+        skipped = [case.get("name") for case in testcases if case.find("skipped") is not None]
+        require(not skipped, f"Maintainer security tests skipped: {skipped}")
+        result["maintainer_testcases"] = len(testcases)
+        result["maintainer_skipped"] = 0
+        if not self.options.keep_success:
+            shutil.rmtree(validation)
+
     def variant(self, mask):
         started = time.monotonic()
         features = selected_features(mask)
@@ -292,40 +366,50 @@ class Runner:
         try:
             if self.stopping.is_set():
                 raise RuntimeError("Matrix interrupted")
-            shutil.copytree(self.snapshot, app)
+            shutil.copytree(self.installation_source, app)
             for dependency in ("vendor", "node_modules"):
                 clone_directory(self.options.root / dependency, app / dependency)
             configure_application(app)
             environment = isolated_environment(temp_directory, self.options.node_installer, self.options.npm_cache)
             self.command(result, "01-autoload", ["composer", "dump-autoload", "--no-scripts", "--no-interaction"], app, environment)
-            self.command(result, "02-installer", ["php", "artisan", "install:features", "--answers=" + json.dumps({"auth_features": features}), "--no-interaction"], app, environment)
+            installer_environment = environment.copy()
+            if not self.options.node_installer:
+                unavailable = temp_directory / "no-node-bin"
+                unavailable.mkdir()
+                for name in ("node", "npm", "npx", "pnpm", "yarn", "bun", "corepack"):
+                    command = unavailable / name
+                    command.write_text("#!/bin/sh\necho 'Node tools must not run during a no-Node installation.' >&2\nexit 97\n")
+                    command.chmod(0o755)
+                installer_environment["PATH"] = str(unavailable) + os.pathsep + environment["PATH"]
+            self.command(result, "02-installer", ["php", "artisan", "install:features", "--answers=" + json.dumps({"auth_features": features}), "--no-interaction"], app, installer_environment)
             validate_source(app, set(features))
-            validate_schema(app, set(features))
+            validate_schema(app)
             result["source_and_schema"] = "passed"
 
-            # A preinstalled removed package must not conceal a stale TS import in
-            # --no-node installations. The normal installer must remove it itself.
-            for feature, package in (("2fa", "input-otp"), ("passkeys", "@laravel/passkeys")):
-                package_directory = app / "node_modules" / package
-                if feature not in features:
-                    if self.options.node_installer:
-                        require(not package_directory.exists(), f"npm retained removed dependency: {package}")
-                    elif package_directory.exists():
-                        shutil.rmtree(package_directory)
+            # Maintainer dependencies must not conceal a stale import in the app.
+            playwright = app / "node_modules/@playwright/test"
+            if self.options.node_installer:
+                require(not playwright.exists() and not playwright.is_symlink(), "npm retained the maintainer Playwright dependency")
+            elif playwright.is_symlink():
+                playwright.unlink()
+            elif playwright.exists():
+                shutil.rmtree(playwright)
 
             probe = directory / "probe.php"
             probe.write_text(PROBE_PHP)
             for name, cache_command in (("03-routes", None), ("05-cached-routes", "route:cache")):
                 if cache_command:
+                    self.command(result, "04-config-cache", ["php", "artisan", "config:cache", "--no-interaction"], app, environment)
                     self.command(result, "04-route-cache", ["php", "artisan", cache_command, "--no-interaction"], app, environment)
                 log = self.command(result, name, ["php", str(probe), str(app)], app, environment)
                 runtime = json.loads(log.read_text().split("\n", 1)[1])
                 validate_runtime(runtime, set(features))
                 (directory / (name + ".json")).write_text(json.dumps(runtime, indent=2) + "\n")
             self.command(result, "06-route-clear", ["php", "artisan", "route:clear", "--no-interaction"], app, environment)
+            self.command(result, "06-config-clear", ["php", "artisan", "config:clear", "--no-interaction"], app, environment)
             result["routes_and_middleware"] = "passed (uncached and cached)"
 
-            for name, script in (("07-frontend-fix", "check:fix"), ("08-frontend-check", "check"), ("09-types", "types:check"), ("10-build", "build")):
+            for name, script in (("08-frontend-check", "check"), ("09-types", "types:check"), ("10-build-ssr", "build:ssr")):
                 self.command(result, name, ["npm", "run", script], app, environment)
             # Collect authoritative skipped-test counts through PHPUnit itself,
             # regardless of the console reporter installed in this checkout.
@@ -348,6 +432,7 @@ class Runner:
             result["phpunit_testcases"] = len(testcases)
             result["phpunit_skipped"] = 0
             validate_source(app, set(features))
+            self.maintainer_checks(result, app, directory, environment, set(features))
             result["status"] = "passed"
             if not self.options.keep_success:
                 shutil.rmtree(app)
@@ -362,9 +447,10 @@ class Runner:
 
 
 def validate_source(app, features):
+    enabled = features | ALWAYS_INSTALLED
     for feature, paths in FEATURE_FILES.items():
         for relative in paths:
-            require((app / relative).is_file() == (feature in features), f"Unexpected {feature} file presence: {relative}")
+            require((app / relative).is_file() == (feature in enabled), f"Unexpected {feature} file presence: {relative}")
     for relative in REMOVED_MAINTAINER_FILES:
         require(not (app / relative).exists(), f"Maintainer file survived: {relative}")
     require((app / "README.md").is_file(), "Application README was removed")
@@ -372,44 +458,57 @@ def validate_source(app, features):
     package = json.loads((app / "package.json").read_text())
     for feature, dependency in (("2fa", "input-otp"), ("passkeys", "@laravel/passkeys")):
         present = any(dependency in package.get(section, {}) for section in ("dependencies", "devDependencies", "optionalDependencies"))
-        require(present == (feature in features), f"Incorrect dependency selection: {dependency}")
+        require(present == (feature in enabled), f"Incorrect dependency selection: {dependency}")
+    require("@playwright/test" not in package.get("devDependencies", {}), "Maintainer browser dependency survived")
+    require(not {"doctor", "test:browser"} & package.get("scripts", {}).keys(), "Maintainer npm scripts survived")
     composer = json.loads((app / "composer.json").read_text())
-    require(not any("install:features" in command for command in composer["scripts"].get("post-update-cmd", [])), "Composer feature-install hook survived")
+    require("installer" not in composer.get("extra", {}).get("laravel", {}), "Laravel installer hook survived")
+    require(not {"test:maintainer", "test:installer", "types:check:maintainer"} & composer.get("scripts", {}).keys(), "Maintainer Composer scripts survived")
+    require("install:features" not in json.dumps(composer["scripts"]), "Composer feature-install hook survived")
+    for relative in ("README.md", ".github/workflows/tests.yml", "composer.json", "package.json", "phpunit.xml", "phpstan.neon"):
+        content = (app / relative).read_text()
+        require(not re.search(r"tests/Maintainer|phpunit\.maintainer|phpstan\.maintainer|README-maintainer|test-chisel|test:maintainer|types:check:maintainer|test:browser|react-doctor", content), f"Generated application references maintainer tooling: {relative}")
+    removed_symbols = []
+    if "registration" not in features:
+        removed_symbols += [r"\bCreatesNewUsers\b", r"\bCreateNewUser\b", r"Features::registration\(", r"Fortify::registerView\(", r"@/routes/register(?:['\"/])"]
+    if "email-verification" not in features:
+        removed_symbols += [r"\bMustVerifyEmail\b", r"\bmustVerifyEmail\b", r"\brequiresEmailVerification\b", r"Features::emailVerification\(", r"Fortify::verifyEmailView\(", r"@/routes/verification(?:['\"/])"]
     for area in SOURCE_AREAS:
         for source in (app / area).rglob("*"):
             if source.is_file() and source.suffix in (".php", ".ts", ".tsx", ".css"):
                 content = source.read_text()
                 require(not re.search(r"@(end-)?chisel-[\w-]+", content), f"Chisel marker survived: {source.relative_to(app)}")
+                require(not re.search(r"\b(?:HasTeams|team_id|team_user|current_team_id|TeamInvitation)\b", content), f"Unexpected Teams implementation: {source.relative_to(app)}")
+                for pattern in removed_symbols:
+                    require(not re.search(pattern, content), f"Removed feature symbol survived in {source.relative_to(app)}: {pattern}")
 
 
-def validate_schema(app, features):
+def validate_schema(app):
     database = app / "database/database.sqlite"
     require(database.is_file(), "Installer did not create SQLite database")
     with sqlite3.connect("file:" + str(database) + "?mode=ro", uri=True) as connection:
         tables = {row[0] for row in connection.execute("select name from sqlite_master where type = 'table'")}
-        require({"users", "password_reset_tokens", "sessions", "pending_email_changes", "migrations"} <= tables, "Installer did not migrate required tables")
-        require(("passkeys" in tables) == ("passkeys" in features), "Passkey table does not match selection")
+        require({"users", "password_reset_tokens", "sessions", "pending_email_changes", "passkeys", "migrations"} <= tables, "Installer did not migrate required tables")
+        require(not {"teams", "team_user", "team_invitations"} & tables, "Teams database schema survived")
         columns = {row[1] for row in connection.execute("pragma table_info(users)")}
-        for name in ("two_factor_secret", "two_factor_recovery_codes", "two_factor_confirmed_at"):
-            require((name in columns) == ("2fa" in features), f"2FA database column does not match selection: {name}")
+        require({"two_factor_secret", "two_factor_recovery_codes", "two_factor_confirmed_at"} <= columns, "Required 2FA columns were removed")
         # Email-change verification is independent of optional sign-up verification.
         require("email_verified_at" in columns, "Email-change verification timestamp was removed")
         migrations = {row[0] for row in connection.execute("select migration from migrations")}
-        for feature, migration in (("2fa", "2025_08_14_170933_add_two_factor_columns_to_users_table"), ("passkeys", "2024_01_01_000000_create_passkeys_table")):
-            require((migration in migrations) == (feature in features), f"Unexpected migration history for {feature}")
+        require({"2025_08_14_170933_add_two_factor_columns_to_users_table", "2024_01_01_000000_create_passkeys_table"} <= migrations, "Required authentication migrations did not run")
 
 
 def validate_runtime(runtime, features):
+    features = features | ALWAYS_INSTALLED
     routes = runtime["routes"]
     for feature, names in ROUTES.items():
         for name in names:
             require((name in routes) == (feature in features), f"Unexpected {feature} route presence: {name}")
-    confirmation = "password-confirmation" in features
     for name in ("passkey.confirm-options", "passkey.confirm"):
-        require((name in routes) == (confirmation and "passkeys" in features), f"Unexpected passkey-confirmation route presence: {name}")
+        require(name in routes, f"Required passkey-confirmation route removed: {name}")
     for name in ("login", "login.store", "logout", "password.request", "password.email", "password.reset", "password.update", "dashboard", "profile.edit", "profile.update", "profile.destroy", "profile.email.store", "profile.email.destroy", "profile.email.confirm", "profile.email.update", "security.edit", "user-password.update"):
         require(name in routes, f"Required application route removed: {name}")
-    require(runtime["password_confirmation"] == confirmation, "Confirmation config differs from selection")
+    require(runtime["password_confirmation"], "Password confirmation must remain enabled by default")
     for feature, configured in (("registration", "registration"), ("email-verification", "email-verification"), ("2fa", "two-factor-authentication"), ("passkeys", "passkeys")):
         require((configured in runtime["features"]) == (feature in features), f"Fortify feature config differs: {feature}")
     for feature, collection, name in (
@@ -419,15 +518,11 @@ def validate_runtime(runtime, features):
         ("2fa", "user_traits", "Laravel\\Fortify\\TwoFactorAuthenticatable"),
     ):
         require((name in runtime[collection]) == (feature in features), f"User model still references removed {feature}: {name}")
-    sensitive = ["profile.email.store", "profile.destroy"]
-    if "2fa" in features:
-        sensitive += list(ROUTES["2fa"][2:])
-    if "passkeys" in features:
-        sensitive += ["passkey.registration-options", "passkey.store", "passkey.destroy"]
+    sensitive = ["profile.email.store", "profile.destroy", *ROUTES["2fa"][2:], "passkey.registration-options", "passkey.store", "passkey.destroy"]
     for name in sensitive:
         middleware = routes[name]["middleware"]
         present = any("ConfirmSensitiveAction" in item or "RequirePassword" in item for item in middleware)
-        require(present == confirmation, f"Wrong sensitive-action middleware on {name}: {middleware}")
+        require(present, f"Missing sensitive-action middleware on {name}: {middleware}")
     for name in ("profile.edit", "security.edit", "user-password.update"):
         require(not any("ConfirmSensitiveAction" in item or "RequirePassword" in item for item in routes[name]["middleware"]), f"Unexpected password-confirmation middleware on {name}")
     for name in ("dashboard", "security.edit", "profile.destroy"):
@@ -438,8 +533,10 @@ def validate_runtime(runtime, features):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1], help="Starter-kit source checkout")
-    parser.add_argument("--masks", type=parse_masks, default=list(range(32)), help="Comma-separated feature masks; default all 32. Bits: email=1, registration=2, 2FA=4, passkeys=8, confirmation=16")
-    parser.add_argument("--node-installer", action="store_true", help="Run the installer's real npm install/remove/build path, offline")
+    parser.add_argument("--masks", type=parse_masks, default=list(range(4)), help="Comma-separated feature masks; default all four. Bits: email verification=1, registration=2")
+    parser.add_argument("--node-installer", action="store_true", help="Run the installer's real npm install/build path, offline")
+    parser.add_argument("--archive", action="store_true", help="Install from a real release archive of the snapshot, applying .gitattributes")
+    parser.add_argument("--output", type=Path, help="Empty output directory for application copies and logs (default: private temporary directory)")
     parser.add_argument("--npm-cache", type=Path, help="Existing npm cache to reuse for offline Node installer runs")
     parser.add_argument("--workers", type=int, choices=(1, 2), default=2, help="Maximum parallel disposable applications (default 2)")
     parser.add_argument("--timeout", type=int, default=900, help="Per-command timeout in seconds (default 900)")
@@ -454,12 +551,22 @@ def main():
     for command in ("php", "composer", "npm", "git"):
         require(shutil.which(command), f"Required executable unavailable: {command}")
     require(options.timeout > 0, "Timeout must be positive")
-    output = Path(tempfile.mkdtemp(prefix="chisel-matrix-")).resolve()
+    if options.output:
+        output = options.output.resolve()
+        if output.is_relative_to(options.root):
+            require(output.is_relative_to(options.root / "artifacts"), "Output inside the checkout must be under artifacts/ so later snapshots cannot include it")
+        require(not output.exists() or (output.is_dir() and not any(output.iterdir())), "Output directory must be empty")
+        output.mkdir(parents=True, exist_ok=True)
+    else:
+        output = Path(tempfile.mkdtemp(prefix="chisel-matrix-")).resolve()
     snapshot = output / "source"
     snapshot.mkdir()
     summary = {"root": str(options.root), "output": str(output), "node_installer": options.node_installer, "masks": options.masks, "feature_bits": {feature: 1 << bit for bit, feature in enumerate(FEATURES)}, "source": snapshot_source(options.root, snapshot), "results": []}
+    installation_source = snapshot
+    if options.archive:
+        installation_source, summary["archive"] = archive_source(snapshot, output)
     print(f"Matrix logs and summary: {output}", flush=True)
-    runner = Runner(options, output, snapshot)
+    runner = Runner(options, output, snapshot, installation_source)
     summary_path = output / "summary.json"
     summary_path.write_text(json.dumps(summary, indent=2) + "\n")
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=options.workers)

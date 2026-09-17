@@ -1,11 +1,7 @@
 import { ActionButton } from '@/components/action-button';
 import { Head, usePage } from '@inertiajs/react';
 import { Form } from '@/components/inertia-form';
-import { useId } from 'react';
-/* @chisel-email-verification */
-import { RequestButton } from '@/components/request-button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-/* @end-chisel-email-verification */
+import { useId, useState } from 'react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import ChangeEmail from '@/components/change-email';
 import DeleteUser from '@/components/delete-user';
@@ -23,29 +19,17 @@ import { Input } from '@/components/ui/input';
 import { clearFormErrors, focusFirstFormError } from '@/lib/utils';
 import { edit } from '@/routes/profile';
 import type { Auth } from '@/types';
-/* @chisel-email-verification */
-import { send } from '@/routes/verification';
-/* @end-chisel-email-verification */
 
 type PageProps = {
     auth: Auth;
     pendingEmail: string | null;
 };
 
-export default function Profile(
-    /* @chisel-email-verification */
-    {
-        mustVerifyEmail,
-        status,
-    }: {
-        mustVerifyEmail: boolean;
-        status?: string;
-    },
-    /* @end-chisel-email-verification */
-) {
+export default function Profile() {
     const formId = useId();
 
     const { auth, pendingEmail } = usePage<PageProps>().props;
+    const [initialName] = useState(auth.user.name);
 
     return (
         <>
@@ -78,7 +62,7 @@ export default function Profile(
 
                                         <Input
                                             id="name"
-                                            defaultValue={auth.user.name}
+                                            defaultValue={initialName}
                                             name="name"
                                             onChange={() =>
                                                 clearFormErrors(
@@ -121,33 +105,7 @@ export default function Profile(
                 </Form>
             </Card>
 
-            <ChangeEmail email={auth.user.email} pendingEmail={pendingEmail}>
-                {/* @chisel-email-verification */}
-                {mustVerifyEmail && auth.user.email_verified_at === null && (
-                    <div>
-                        <p className="text-muted-foreground text-sm">
-                            Your email address is unverified.{' '}
-                            <RequestButton
-                                action={send()}
-                                variant="link"
-                                className="h-auto max-w-full p-0 text-left whitespace-normal underline"
-                            >
-                                Click here to re-send the verification email.
-                            </RequestButton>
-                        </p>
-
-                        {status === 'verification-link-sent' && (
-                            <Alert className="mt-2">
-                                <AlertDescription>
-                                    A new verification link has been sent to
-                                    your email address.
-                                </AlertDescription>
-                            </Alert>
-                        )}
-                    </div>
-                )}
-                {/* @end-chisel-email-verification */}
-            </ChangeEmail>
+            <ChangeEmail email={auth.user.email} pendingEmail={pendingEmail} />
 
             <DeleteUser />
         </>

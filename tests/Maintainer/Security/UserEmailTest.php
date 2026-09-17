@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Maintainer\Security;
 
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;

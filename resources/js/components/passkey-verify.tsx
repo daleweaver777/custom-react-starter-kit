@@ -5,6 +5,7 @@ import { KeyRound } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { ActionButton } from '@/components/action-button';
 import { FieldError, FieldSeparator } from '@/components/ui/field';
+import { reportRequestError } from '@/lib/request-errors';
 
 type Props = {
     routes?: {
@@ -59,14 +60,16 @@ export default function PasskeyVerify({
                         if (pending) return;
                         setPending(true);
                         followUp.current = null;
-                        void (async () => {
-                            try {
-                                await verify();
-                                await followUp.current;
-                            } finally {
+                        void verify()
+                            .then(() => followUp.current)
+                            .catch(() => {
+                                // The passkey hook handles authenticator errors;
+                                // also recover if the follow-up navigation fails.
+                                reportRequestError(500);
+                            })
+                            .finally(() => {
                                 setPending(false);
-                            }
-                        })();
+                            });
                     }}
                 >
                     <KeyRound data-icon="inline-start" />

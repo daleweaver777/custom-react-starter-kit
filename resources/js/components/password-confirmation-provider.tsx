@@ -1,36 +1,12 @@
-import { ActionButton } from '@/components/action-button';
 import { http, HttpResponseError } from '@inertiajs/core';
 import { router, usePage } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import PasswordInput from '@/components/password-input';
-import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import {
-    Field,
-    FieldError,
-    FieldGroup,
-    FieldLabel,
-} from '@/components/ui/field';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import PasswordConfirmationDialog from '@/components/password-confirmation-dialog';
+import type { PasswordConfirmationDialogState } from '@/components/password-confirmation-dialog';
 import { ConfirmationContext } from '@/hooks/use-confirmation';
 import type { ConfirmationOptions } from '@/hooks/use-confirmation';
 import { reportRequestError } from '@/lib/request-errors';
-/* @chisel-password-confirmation */
-/* @chisel-passkeys */
-import {
-    index as passkeyOptions,
-    store as passkeyStore,
-} from '@/actions/Laravel/Passkeys/Http/Controllers/PasskeyConfirmationController';
-import PasskeyVerify from '@/components/passkey-verify';
-/* @end-chisel-passkeys */
-/* @end-chisel-password-confirmation */
 
 type Policy = {
     enabled: boolean;
@@ -45,9 +21,7 @@ type Pending = {
 };
 type ConfirmationStatus = {
     confirmed: boolean;
-    /* @chisel-passkeys */
     canConfirmWithPasskey?: boolean;
-    /* @end-chisel-passkeys */
 };
 
 export default function PasswordConfirmationProvider({
@@ -56,28 +30,21 @@ export default function PasswordConfirmationProvider({
     const { passwordConfirmation: policy } = usePage<{
         passwordConfirmation: Policy;
     }>().props;
-    const [dialog, setDialog] = useState<
-        | (ConfirmationOptions & {
-              needsPassword: boolean;
-              /* @chisel-passkeys */
-              canConfirmWithPasskey?: boolean;
-              /* @end-chisel-passkeys */
-          })
-        | null
-    >(null);
+    const [dialog, setDialog] =
+        useState<PasswordConfirmationDialogState | null>(null);
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [processing, setProcessing] = useState(false);
     const [expiresAt, setExpiresAt] = useState(policy.confirmedUntil);
-    useEffect(
-        () => setExpiresAt(policy.confirmedUntil),
-        [policy.confirmedUntil],
-    );
+    const [confirmedUntil, setConfirmedUntil] = useState(policy.confirmedUntil);
+    if (confirmedUntil !== policy.confirmedUntil) {
+        setConfirmedUntil(policy.confirmedUntil);
+        setExpiresAt(policy.confirmedUntil);
+    }
     const pending = useRef<Pending | null>(null);
     const pendingFailure = useRef<number | null>(null);
     const trigger = useRef<HTMLElement | null>(null);
     const passwordRef = useRef<HTMLInputElement>(null);
-    const id = useId();
 
     const finish = useCallback((confirmed: boolean) => {
         const request = pending.current;
@@ -143,9 +110,10 @@ export default function PasswordConfirmationProvider({
                 const request = {
                     resolve,
                     trigger:
-                        document.activeElement instanceof HTMLElement
+                        options.trigger ??
+                        (document.activeElement instanceof HTMLElement
                             ? document.activeElement
-                            : null,
+                            : null),
                 };
                 pending.current = request;
                 trigger.current = request.trigger;
@@ -169,9 +137,7 @@ export default function PasswordConfirmationProvider({
                     setDialog({
                         ...options,
                         needsPassword: !status.confirmed,
-                        /* @chisel-passkeys */
                         canConfirmWithPasskey: status.canConfirmWithPasskey,
-                        /* @end-chisel-passkeys */
                     });
                 })();
             });
@@ -181,104 +147,108 @@ export default function PasswordConfirmationProvider({
 
     const submit = async () => {
         if (processing || !pending.current) return;
-        if (!dialog?.needsPassword) {
-            const request = pending.current;
-            setProcessing(true);
-            try {
-                const status = await checkStatus();
-                if (pending.current !== request) return;
-                if (status.confirmed) finish(true);
-                else {
+        const request = pending.current;
+        return (async () => {
+            if (!dialog?.needsPassword) {
+                setProcessing(true);
+                try {
+                    const status = await checkStatus();
+                    if (pending.current !== request) return;
+                    if (status.confirmed) finish(true);
+                    else {
+                        setDialog(
+                            (current) =>
+                                current && {
+                                    ...current,
+                                    needsPassword: true,
+                                    canConfirmWithPasskey:
+                                        status.canConfirmWithPasskey,
+                                },
+                        );
+                    }
+                } catch (failure) {
+                    if (pending.current !== request) return;
+                    if (handleRequestFailure(failure)) return;
                     setDialog(
                         (current) =>
                             current && {
                                 ...current,
                                 needsPassword: true,
-                                /* @chisel-passkeys */
-                                canConfirmWithPasskey:
-                                    status.canConfirmWithPasskey,
-                                /* @end-chisel-passkeys */
+                                canConfirmWithPasskey: false,
                             },
                     );
-                    setProcessing(false);
+                    setError('Unable to confirm. Please try again.');
+                }
+                return;
+            }
+            if (!policy.submitUrl) return;
+            setProcessing(true);
+            setError('');
+            try {
+                await http.getClient().request({
+                    method: 'post',
+                    url: policy.submitUrl,
+                    data: { password },
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+                if (pending.current !== request) return;
+                const { confirmed } = await checkStatus();
+                if (pending.current === request) {
+                    if (confirmed) finish(true);
+                    else {
+                        setPassword('');
+                        setError('Please confirm again to continue.');
+                    }
                 }
             } catch (failure) {
                 if (pending.current !== request) return;
                 if (handleRequestFailure(failure)) return;
-                setDialog(
-                    (current) =>
-                        current && {
-                            ...current,
-                            needsPassword: true,
-                            /* @chisel-passkeys */
-                            canConfirmWithPasskey: false,
-                            /* @end-chisel-passkeys */
-                        },
+                const status =
+                    failure instanceof HttpResponseError
+                        ? failure.response.status
+                        : 0;
+                let validationMessage: string | undefined;
+                if (failure instanceof HttpResponseError && status === 422) {
+                    try {
+                        const response = JSON.parse(failure.response.data);
+                        const messages = response.errors?.password;
+                        const message = Array.isArray(messages)
+                            ? messages[0]
+                            : messages;
+                        if (typeof message === 'string')
+                            validationMessage = message;
+                    } catch {
+                        // Keep the dialog usable if a proxy returns a non-JSON response.
+                    }
+                }
+                setError(
+                    validationMessage ?? 'Unable to confirm. Please try again.',
                 );
-                setError('Unable to confirm. Please try again.');
-                setProcessing(false);
+                setPassword('');
+                requestAnimationFrame(() => passwordRef.current?.focus());
             }
-            return;
-        }
-        if (!policy.submitUrl) return;
-        const request = pending.current;
-        setProcessing(true);
-        setError('');
-        try {
-            await http.getClient().request({
-                method: 'post',
-                url: policy.submitUrl,
-                data: { password },
-                headers: {
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            });
-            if (pending.current !== request) return;
-            const { confirmed } = await checkStatus();
-            if (pending.current === request) {
-                if (confirmed) finish(true);
-                else {
-                    setPassword('');
-                    setProcessing(false);
-                    setError('Please confirm again to continue.');
-                }
-            }
-        } catch (failure) {
-            if (pending.current !== request) return;
-            if (handleRequestFailure(failure)) return;
-            const status =
-                failure instanceof HttpResponseError
-                    ? failure.response.status
-                    : 0;
-            let validationMessage: string | undefined;
-            if (failure instanceof HttpResponseError && status === 422) {
-                try {
-                    const response = JSON.parse(failure.response.data);
-                    const messages = response.errors?.password;
-                    const message = Array.isArray(messages)
-                        ? messages[0]
-                        : messages;
-                    if (typeof message === 'string')
-                        validationMessage = message;
-                } catch {
-                    // Keep the dialog usable if a proxy returns a non-JSON response.
-                }
-            }
-            setError(
-                validationMessage ?? 'Unable to confirm. Please try again.',
-            );
-            setPassword('');
-            setProcessing(false);
-            requestAnimationFrame(() => passwordRef.current?.focus());
-        }
+        })().finally(() => {
+            if (pending.current === request) setProcessing(false);
+        });
     };
 
-    /* @chisel-password-confirmation */
-    /* @chisel-passkeys */
     const currentRequest = pending.current;
-    /* @end-chisel-passkeys */
-    /* @end-chisel-password-confirmation */
+    const handlePasskeyVerified = () => {
+        return checkStatus()
+            .then(({ confirmed }) => {
+                if (confirmed && pending.current === currentRequest)
+                    finish(true);
+            })
+            .catch((failure) => {
+                if (pending.current !== currentRequest) return;
+                if (!handleRequestFailure(failure)) {
+                    setError('Unable to confirm. Please try again.');
+                }
+            });
+    };
 
     return (
         <ConfirmationContext
@@ -290,125 +260,27 @@ export default function PasswordConfirmationProvider({
             }}
         >
             {children}
-            <Dialog
-                open={dialog !== null}
-                onOpenChange={(open) => {
-                    if (!open && !processing) finish(false);
+            <PasswordConfirmationDialog
+                dialog={dialog}
+                password={password}
+                error={error}
+                processing={processing}
+                passwordRef={passwordRef}
+                triggerRef={trigger}
+                onPasswordChange={(value) => {
+                    setPassword(value);
+                    setError('');
                 }}
-                onOpenChangeComplete={(open) => {
-                    if (!open && pendingFailure.current !== null) {
+                onSubmit={submit}
+                onPasskeyVerified={handlePasskeyVerified}
+                onCancel={() => finish(false)}
+                onClosed={() => {
+                    if (pendingFailure.current !== null) {
                         reportRequestError(pendingFailure.current);
                         pendingFailure.current = null;
                     }
                 }}
-            >
-                <DialogContent showCloseButton={false} finalFocus={trigger}>
-                    <DialogHeader>
-                        <DialogTitle>
-                            {dialog?.title ?? 'Confirm your identity'}
-                        </DialogTitle>
-                        <DialogDescription>
-                            {dialog?.description ??
-                                'Confirm your identity to continue with this security-sensitive action.'}
-                        </DialogDescription>
-                    </DialogHeader>
-                    {/* @chisel-password-confirmation */}
-                    {/* @chisel-passkeys */}
-                    {dialog?.needsPassword && dialog.canConfirmWithPasskey && (
-                        <PasskeyVerify
-                            routes={{
-                                options: passkeyOptions(),
-                                submit: passkeyStore(),
-                            }}
-                            label="Confirm with passkey"
-                            separator="Or confirm with password"
-                            onVerified={() => {
-                                return checkStatus()
-                                    .then(({ confirmed }) => {
-                                        if (
-                                            confirmed &&
-                                            pending.current === currentRequest
-                                        )
-                                            finish(true);
-                                    })
-                                    .catch((failure) => {
-                                        if (pending.current !== currentRequest)
-                                            return;
-                                        if (!handleRequestFailure(failure)) {
-                                            setError(
-                                                'Unable to confirm. Please try again.',
-                                            );
-                                        }
-                                    });
-                            }}
-                        />
-                    )}
-                    {/* @end-chisel-passkeys */}
-                    {/* @end-chisel-password-confirmation */}
-                    <form
-                        noValidate
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            void submit();
-                        }}
-                        className="flex flex-col gap-4"
-                    >
-                        {dialog?.needsPassword && (
-                            <FieldGroup>
-                                <Field data-invalid={!!error}>
-                                    <FieldLabel htmlFor={id}>
-                                        Current password
-                                    </FieldLabel>
-                                    <PasswordInput
-                                        ref={passwordRef}
-                                        id={id}
-                                        name="password"
-                                        value={password}
-                                        onChange={(event) => {
-                                            setPassword(event.target.value);
-                                            setError('');
-                                        }}
-                                        autoComplete="current-password"
-                                        autoFocus
-                                        required
-                                        disabled={processing}
-                                        aria-invalid={!!error}
-                                        aria-describedby={
-                                            error ? `${id}-error` : undefined
-                                        }
-                                    />
-                                    <FieldError id={`${id}-error`}>
-                                        {error}
-                                    </FieldError>
-                                </Field>
-                            </FieldGroup>
-                        )}
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled={processing}
-                                onClick={() => finish(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <ActionButton
-                                type="submit"
-                                pauseWhileConfirming={false}
-                                variant={
-                                    dialog?.destructive
-                                        ? 'destructive'
-                                        : 'default'
-                                }
-                                disabled={processing}
-                                pending={processing}
-                            >
-                                {dialog?.actionLabel ?? 'Confirm and continue'}
-                            </ActionButton>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+            />
         </ConfirmationContext>
     );
 }

@@ -7,15 +7,11 @@ namespace App\Providers;
 use App\Actions\Fortify\CreateNewUser;
 /* @end-chisel-registration */
 use App\Actions\Fortify\ResetUserPassword;
-/* @chisel-password-confirmation */
 use App\Http\Controllers\Auth\PasswordConfirmationController;
-/* @end-chisel-password-confirmation */
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Responses\PasswordResetLinkResponse;
 use Illuminate\Cache\RateLimiting\Limit;
-/* @chisel-passkeys */
 use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
-/* @end-chisel-passkeys */
 use Illuminate\Http\Request;
 use Illuminate\Routing\RouteCollection;
 use Illuminate\Routing\Router;
@@ -67,35 +63,28 @@ class FortifyServiceProvider extends ServiceProvider
             $routes = new RouteCollection;
 
             foreach ($router->getRoutes()->getRoutes() as $route) {
-                /* @chisel-password-confirmation */
-                /* @chisel-passkeys */
+
                 if ($route->getName() === 'password.confirmation') {
                     $route->uses([PasswordConfirmationController::class, 'status']);
                 }
-                /* @end-chisel-passkeys */
-                /* @end-chisel-password-confirmation */
 
-                /* @chisel-password-confirmation */
                 if ($route->getName() === 'password.confirm.store') {
                     $route->middleware('throttle:password-confirmation');
                     $route->uses([PasswordConfirmationController::class, 'store']);
                 }
-                /* @end-chisel-password-confirmation */
 
-                /* @chisel-passkeys */
                 if ($route->getName() === 'passkey.store') {
                     $route->middleware(HandlePrecognitiveRequests::class);
                 }
-                /* @end-chisel-passkeys */
 
                 if (config('fortify.password_confirmation', true) || ! in_array($route->getName(), [
                     'password.confirm',
                     'password.confirm.store',
                     'password.confirmation',
-                    /* @chisel-passkeys */
+
                     'passkey.confirm-options',
                     'passkey.confirm',
-                    /* @end-chisel-passkeys */
+
                 ], true)) {
                     $routes->add($route);
                 }
@@ -151,18 +140,15 @@ class FortifyServiceProvider extends ServiceProvider
         ]));
         /* @end-chisel-registration */
 
-        /* @chisel-2fa */
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/two-factor-challenge'));
-        /* @end-chisel-2fa */
 
-        /* @chisel-password-confirmation */
         Fortify::confirmPasswordView(fn (Request $request) => Inertia::render('auth/confirm-password', [
-            /* @chisel-passkeys */
+
             'canConfirmWithPasskey' => Features::canManagePasskeys()
                 && ($request->user()?->passkeys()->exists() ?? false),
-            /* @end-chisel-passkeys */
+
         ]));
-        /* @end-chisel-password-confirmation */
+
     }
 
     /**
@@ -174,35 +160,32 @@ class FortifyServiceProvider extends ServiceProvider
             ? Limit::perMinute(30)->by('validation:'.$request->user()?->getAuthIdentifier())
             : Limit::perMinute(6)->by('submission:'.$request->user()?->getAuthIdentifier()));
 
-        /* @chisel-password-confirmation */
         RateLimiter::for('password-confirmation', fn (Request $request) => [
             Limit::perMinute(5)->by('user:'.$request->user()?->getAuthIdentifier()),
             Limit::perMinute(30)->by('ip:'.$request->ip()),
         ]);
-        /* @end-chisel-password-confirmation */
 
-        /* @chisel-2fa */
         RateLimiter::for('two-factor', function (Request $request) {
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
         });
-        /* @end-chisel-2fa */
 
         RateLimiter::for('login', function (Request $request) {
-            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
+            $username = $request->input(Fortify::username());
+            $throttleKey = Str::transliterate(Str::lower(is_string($username) ? $username : '').'|'.$request->ip());
 
             return Limit::perMinute(5)->by($throttleKey);
         });
 
-        /* @chisel-passkeys */
         RateLimiter::for('passkeys', function (Request $request) {
             if ($request->isPrecognitive()) {
                 return Limit::perMinute(30)->by('validation:'.$request->user()?->getAuthIdentifier());
             }
 
-            return Limit::perMinute(10)->by(
-                ($request->input('credential.id') ?: $request->session()->getId()).'|'.$request->ip(),
-            );
+            $credential = $request->input('credential.id');
+            $key = is_string($credential) && $credential !== '' ? $credential : $request->session()->getId();
+
+            return Limit::perMinute(10)->by($key.'|'.$request->ip());
         });
-        /* @end-chisel-passkeys */
+
     }
 }

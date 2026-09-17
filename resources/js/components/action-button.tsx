@@ -1,9 +1,4 @@
-import {
-    useContext,
-    useLayoutEffect,
-    useState,
-    type ComponentProps,
-} from 'react';
+import { useContext, useState, type ComponentProps } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useActionLoading } from '@/hooks/use-action-loading';
@@ -26,9 +21,11 @@ export function ActionButton({
         pending && !(pauseWhileConfirming && confirmation?.prompting);
     const visible = useActionLoading(loading);
     const [idleContent, setIdleContent] = useState(children);
-    useLayoutEffect(() => {
-        if (!pending) setIdleContent(children);
-    }, [children, pending]);
+    // Snapshot the idle label before committing, so pending content stays stable
+    // without a second commit from a layout effect.
+    if (!pending && idleContent !== children) {
+        setIdleContent(children);
+    }
     return (
         <Button
             {...props}

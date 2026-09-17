@@ -19,9 +19,7 @@ import { register } from '@/routes';
 /* @end-chisel-registration */
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
-/* @chisel-passkeys */
 import PasskeyVerify from '@/components/passkey-verify';
-/* @end-chisel-passkeys */
 
 type Props = {
     status?: string;
@@ -42,9 +40,7 @@ export default function Login({
 
             <AuthStatus>{status}</AuthStatus>
 
-            {/* @chisel-passkeys */}
             <PasskeyVerify />
-            {/* @end-chisel-passkeys */}
 
             <Form
                 id={formId}
@@ -151,8 +147,8 @@ export default function Login({
                                 Log in
                             </ActionButton>
                         </FieldGroup>
-
                         {/* @chisel-registration */}
+
                         <div className="text-muted-foreground text-center text-sm">
                             Don't have an account?{' '}
                             <TextLink href={register()}>Sign up</TextLink>

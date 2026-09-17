@@ -1,6 +1,13 @@
 {
     "$schema": "https://react.doctor/schema/config.json",
     "ignore": {
-        "files": ["vendor/**", "resources/js/pages/welcome.tsx"]
+        "files": [
+            "vendor/**",
+            "resources/js/components/inertia-form.ts",
+            "resources/js/pages/welcome.tsx",
+            "resources/js/actions/**",
+            "resources/js/routes/**",
+            "resources/js/wayfinder/**"
+        ]
     }
 }

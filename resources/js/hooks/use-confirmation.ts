@@ -6,14 +6,13 @@ export type ConfirmationOptions = {
     actionLabel?: string;
     destructive?: boolean;
     always?: boolean;
+    trigger?: HTMLElement | null;
 };
 
 export const ConfirmationContext = createContext<{
     confirm: (options?: ConfirmationOptions) => Promise<boolean>;
-    /* @chisel-password-confirmation */
     enabled: boolean;
     expiresAt: number;
-    /* @end-chisel-password-confirmation */
     prompting: boolean;
 } | null>(null);
 

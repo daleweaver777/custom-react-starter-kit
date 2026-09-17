@@ -3,11 +3,12 @@ import { useState } from 'react';
 import { useConfirmation } from '@/hooks/use-confirmation';
 import { ActionButton } from '@/components/action-button';
 import { Badge } from '@/components/ui/badge';
+import { reportRequestError } from '@/lib/request-errors';
 import type { Passkey } from '@/types/auth';
 
 type Props = {
     passkey: Passkey;
-    onDelete: (id: number, onFinish: () => void) => void;
+    onDelete: (id: number) => Promise<void>;
 };
 
 export default function PasskeyItem({ passkey, onDelete }: Props) {
@@ -17,19 +18,18 @@ export default function PasskeyItem({ passkey, onDelete }: Props) {
     const handleDelete = async () => {
         if (isDeleting) return;
         setIsDeleting(true);
-        if (
-            !(await confirm({
-                title: 'Remove passkey?',
-                description: `The "${passkey.name}" passkey will be removed and you will no longer be able to use it to sign in.`,
-                actionLabel: 'Remove',
-                destructive: true,
-                always: true,
-            }))
-        ) {
-            setIsDeleting(false);
-            return;
-        }
-        onDelete(passkey.id, () => setIsDeleting(false));
+        await confirm({
+            title: 'Remove passkey?',
+            description: `The "${passkey.name}" passkey will be removed and you will no longer be able to use it to sign in.`,
+            actionLabel: 'Remove',
+            destructive: true,
+            always: true,
+        })
+            .then((confirmed) => {
+                if (confirmed) return onDelete(passkey.id);
+            })
+            .catch(() => reportRequestError(500))
+            .finally(() => setIsDeleting(false));
     };
 
     return (

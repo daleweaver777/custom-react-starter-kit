@@ -5,9 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
-/* @chisel-2fa */
 use Laravel\Fortify\Features;
-/* @end-chisel-2fa */
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -34,7 +32,6 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('dashboard', absolute: false));
     }
 
-    /* @chisel-2fa */
     public function test_users_with_two_factor_enabled_are_redirected_to_two_factor_challenge()
     {
         $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
@@ -55,7 +52,6 @@ class AuthenticationTest extends TestCase
         $response->assertSessionHas('login.id', $user->id);
         $this->assertGuest();
     }
-    /* @end-chisel-2fa */
 
     public function test_users_can_not_authenticate_with_invalid_password()
     {
@@ -67,18 +63,6 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertGuest();
-    }
-
-    public function test_users_can_authenticate_with_mixed_case_email(): void
-    {
-        $user = User::factory()->create(['email' => 'test@example.com']);
-
-        $this->post(route('login.store'), [
-            'email' => 'Test@Example.COM',
-            'password' => 'password',
-        ])->assertSessionHasNoErrors()->assertRedirect(route('dashboard', absolute: false));
-
-        $this->assertAuthenticatedAs($user);
     }
 
     public function test_users_can_logout()

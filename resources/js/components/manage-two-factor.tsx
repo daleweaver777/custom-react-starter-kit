@@ -1,6 +1,6 @@
 import { ActionButton } from '@/components/action-button';
 import { ShieldCheck } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import TwoFactorRecoveryCodes from '@/components/two-factor-recovery-codes';
 import TwoFactorSetupModal from '@/components/two-factor-setup-modal';
 import ConfirmedForm from '@/components/confirmed-form';
@@ -22,16 +22,38 @@ export type Props = {
     twoFactorEnabled?: boolean;
 };
 
-export default function ManageTwoFactor(props: Props) {
+export default function ManageTwoFactor({
+    canManageTwoFactor = false,
+    requiresConfirmation = false,
+    twoFactorEnabled = false,
+}: Props) {
     const {
         confirm,
-        /* @chisel-password-confirmation */
         enabled: confirmationEnabled,
         expiresAt,
-        /* @end-chisel-password-confirmation */
     } = useConfirmation();
-    const requiresConfirmation = props.requiresConfirmation ?? false;
-    const twoFactorEnabled = props.twoFactorEnabled ?? false;
+    const [showSetupModal, setShowSetupModal] = useState<boolean>(false);
+    const [continuing, setContinuing] = useState(false);
+    const [resetKey, setResetKey] = useState(0);
+    const confirmationExpired = confirmationEnabled && !expiresAt;
+    const [previousSecurity, setPreviousSecurity] = useState({
+        confirmationExpired,
+        twoFactorEnabled,
+    });
+    const confirmationJustExpired =
+        confirmationExpired && !previousSecurity.confirmationExpired;
+    const twoFactorJustDisabled =
+        previousSecurity.twoFactorEnabled && !twoFactorEnabled;
+
+    if (
+        previousSecurity.confirmationExpired !== confirmationExpired ||
+        previousSecurity.twoFactorEnabled !== twoFactorEnabled
+    ) {
+        setPreviousSecurity({ confirmationExpired, twoFactorEnabled });
+    }
+    if (confirmationJustExpired || twoFactorJustDisabled)
+        setResetKey((current) => current + 1);
+    if (confirmationJustExpired) setShowSetupModal(false);
 
     const {
         qrCodeSvg,
@@ -44,27 +66,10 @@ export default function ManageTwoFactor(props: Props) {
         recoveryCodesList,
         fetchRecoveryCodes,
         errors,
-    } = useTwoFactorAuth();
-    const [showSetupModal, setShowSetupModal] = useState<boolean>(false);
-    const [continuing, setContinuing] = useState(false);
-    const prevTwoFactorEnabled = useRef(twoFactorEnabled);
+    } = useTwoFactorAuth(resetKey);
 
     useEffect(() => {
-        if (prevTwoFactorEnabled.current && !twoFactorEnabled) {
-            clearTwoFactorAuthData();
-        }
-
-        prevTwoFactorEnabled.current = twoFactorEnabled;
-    }, [twoFactorEnabled, clearTwoFactorAuthData]);
-
-    /* @chisel-password-confirmation */
-    useEffect(() => {
-        if (!confirmationEnabled) return;
-        if (!expiresAt) {
-            setShowSetupModal(false);
-            clearTwoFactorAuthData();
-            return;
-        }
+        if (!confirmationEnabled || !expiresAt) return;
         const timer = window.setTimeout(
             () => {
                 setShowSetupModal(false);
@@ -74,9 +79,8 @@ export default function ManageTwoFactor(props: Props) {
         );
         return () => window.clearTimeout(timer);
     }, [confirmationEnabled, expiresAt, clearTwoFactorAuthData]);
-    /* @end-chisel-password-confirmation */
 
-    if (!(props.canManageTwoFactor ?? false)) {
+    if (!canManageTwoFactor) {
         return null;
     }
 
