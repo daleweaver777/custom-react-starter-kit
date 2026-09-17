@@ -1,4 +1,5 @@
 import { ActionButton } from '@/components/action-button';
+import { UserCancelledError, type PasskeyError } from '@laravel/passkeys';
 import { usePasskeyRegister } from '@laravel/passkeys/react';
 import { Info } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
@@ -10,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import {
     Field,
     FieldDescription,
+    FieldError,
     FieldGroup,
     FieldLabel,
 } from '@/components/ui/field';
@@ -46,8 +48,11 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
     });
 
     const [showForm, setShowForm] = useState(false);
+    const [registrationError, setRegistrationError] =
+        useState<PasskeyError | null>(null);
     const followUp = useRef<Promise<void> | null>(null);
-    const { register, isLoading, error, isSupported } = usePasskeyRegister({
+    const { register, isLoading, isSupported } = usePasskeyRegister({
+        onError: setRegistrationError,
         onSuccess: () => {
             followUp.current = onSuccess().then(() => {
                 setName('');
@@ -60,6 +65,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
     const handleCancel = () => {
         setShowForm(false);
         setName('');
+        setRegistrationError(null);
         requestAnimationFrame(() => addButtonRef.current?.focus());
     };
 
@@ -94,6 +100,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
             validateBeforeConfirm={['name']}
             onConfirmed={async (data) => {
                 followUp.current = null;
+                setRegistrationError(null);
                 await register(data.name.trim());
                 await Promise.resolve(followUp.current);
             }}
@@ -101,7 +108,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
             className="flex w-full flex-col gap-4"
         >
             {({ errors, clearErrors, processing }) => {
-                const nameError = errors.name ?? error ?? undefined;
+                const nameError = errors.name;
                 return (
                     <>
                         <FieldGroup>
@@ -166,6 +173,21 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
                                 Complete the passkey prompt on your device.
                             </p>
                         )}
+                        {!isLoading &&
+                            registrationError &&
+                            (registrationError instanceof UserCancelledError ? (
+                                <p
+                                    role="status"
+                                    className="text-muted-foreground text-sm"
+                                >
+                                    Passkey setup was cancelled or timed out.
+                                    Please try again.
+                                </p>
+                            ) : (
+                                <FieldError>
+                                    {registrationError.message}
+                                </FieldError>
+                            ))}
                     </>
                 );
             }}
